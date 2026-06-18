@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+prisma/dev.db
+prisma/dev.db-journal
+.env
+
+# database backups
+/backups/
+
+# database data (MySQL)
+mysql-data/
+
+# SQLite (legacy)
+dev.db
+
+# uploaded files (keep folder, ignore contents)
+public/uploads/*
+!public/uploads/.gitkeep
