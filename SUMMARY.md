@@ -92,7 +92,7 @@ npx prisma generate  # Generate Prisma client
 │   │   │   ├── berita/        # Halaman berita publik (+ detail [slug])
 │   │   │   ├── galeri/        # Halaman galeri publik (+ detail album [slug])
 │   │   │   └── kontak/        # Halaman kontak (form + info + medsos)
-│   │   ├── admin/             # Panel admin (dilindungi middleware)
+│   │   ├── admin/             # Panel admin (dilindungi proxy)
 │   │   │   ├── page.tsx       # Dashboard (statistik real-time)
 │   │   │   ├── layout.tsx     # Layout admin (sidebar + topbar)
 │   │   │   ├── admin-sidebar.tsx  # Sidebar navigasi admin
@@ -124,7 +124,7 @@ npx prisma generate  # Generate Prisma client
 │   │   ├── auth-types.ts      # Type definitions untuk auth
 │   │   ├── prisma.ts          # Prisma client singleton
 │   │   └── utils.ts           # Fungsi utilitas (slugify, formatDate, dll)
-│   └── middleware.ts           # Proteksi route /admin (redirect ke /login)
+│   └── proxy.ts                # Proteksi route /admin (redirect ke /login)
 ├── prisma.config.ts            # Konfigurasi Prisma CLI (datasource url)
 ├── SUMMARY.md                  # File ini
 ├── AGENTS.md                   # Agent instructions untuk AI coding
@@ -198,7 +198,7 @@ npx prisma generate  # Generate Prisma client
 | Fitur | Status |
 |-------|--------|
 | Autentikasi (NextAuth Credentials) | ✅ |
-| Proteksi rute admin (middleware) | ✅ |
+| Proteksi rute admin (proxy) | ✅ |
 | Responsive design (mobile/desktop) | ✅ |
 | Rich text editor (ContentEditor) | ✅ |
 | Upload gambar via URL | ✅ |

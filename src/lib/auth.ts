@@ -27,7 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("CaptchaError")
         }
 
-        // Dynamic import to avoid loading Prisma in Edge Runtime (middleware)
+        // Dynamic import to avoid loading Prisma in Edge Runtime (proxy)
         const { prisma } = await import("@/lib/prisma")
 
         const user = await prisma.user.findUnique({
