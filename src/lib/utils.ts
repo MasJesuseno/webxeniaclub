@@ -3,7 +3,7 @@ export function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
 }
 
 export function formatDate(date: Date | string): string {
@@ -11,27 +11,14 @@ export function formatDate(date: Date | string): string {
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+  })
 }
 
-export function formatDateShort(date: Date | string): string {
-  return new Date(date).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text
+  return text.substring(0, length).replace(/\s+\S*$/, "") + "..."
 }
 
-export function truncate(text: string, length: number = 100): string {
-  if (text.length <= length) return text;
-  return text.substring(0, length) + "...";
-}
-
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .substring(0, 2);
+export function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, "")
 }

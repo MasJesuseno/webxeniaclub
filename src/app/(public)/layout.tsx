@@ -1,31 +1,55 @@
-import { prisma } from "@/lib/prisma";
-import { Footer } from "@/components/footer";
-import { HeroNav } from "@/components/hero-nav";
+import { HeroNav } from "@/components/hero-nav"
+import { Footer } from "@/components/footer"
+import { ColorTheme } from "@/components/color-theme"
+import { prisma } from "@/lib/prisma"
 
-async function getPublicData() {
-  const profile = await prisma.siteProfile.findFirst({ where: { id: 1 } });
-  return { profile };
-}
-
-export default async function PublicLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { profile } = await getPublicData();
-  const schoolName = profile?.shortName || "SMA Annajah";
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  const [profile, headerMenu] = await Promise.all([
+    prisma.siteProfile.findFirst() as any,
+    prisma.menu.findUnique({
+      where: { location: "header" },
+      include: {
+        items: {
+          where: { parentId: null },
+          orderBy: { order: "asc" },
+          include: {
+            page: { select: { title: true, slug: true } },
+            children: {
+              orderBy: { order: "asc" },
+              include: { page: { select: { title: true, slug: true } } },
+            },
+          },
+        },
+      },
+    }),
+  ])
 
   return (
     <>
+      <ColorTheme primaryColor={profile?.primaryColor || "#DC2626"} />
       <HeroNav
+        clubName={profile?.clubName || "Xenia Club Indonesia"}
+        shortName={profile?.shortName || "DXIC"}
         logo={profile?.logo}
-        schoolName={schoolName}
+        primaryColor={profile?.primaryColor}
         slogan={profile?.slogan}
+        menuItems={(headerMenu?.items as any[]) || []}
       />
-      <main>{children}</main>
-      <Footer />
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer
+        clubName={profile?.clubName}
+        shortName={profile?.shortName}
+        description={profile?.description}
+        address={profile?.address}
+        phone={profile?.phone}
+        email={profile?.email}
+        instagramUrl={profile?.instagramUrl}
+        youtubeUrl={profile?.youtubeUrl}
+        facebookUrl={profile?.facebookUrl}
+        twitterUrl={profile?.twitterUrl}
+      />
     </>
-  );
+  )
 }
-
-

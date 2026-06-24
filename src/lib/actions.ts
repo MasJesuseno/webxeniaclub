@@ -1,468 +1,792 @@
-"use server";
+"use server"
 
-import { prisma } from "./prisma";
-import { revalidatePath } from "next/cache";
-import bcrypt from "bcryptjs";
-import { slugify } from "./utils";
+import { revalidatePath } from "next/cache"
+import { prisma } from "@/lib/prisma"
+import { slugify } from "@/lib/utils"
+import bcrypt from "bcryptjs"
+import { auth } from "@/lib/auth"
 
-// ─── User Actions ───────────────────────────────────────────
-export async function createUser(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const roleIds = formData.getAll("roleIds").map(Number);
+// ==================== AUTH ====================
 
-  const hashed = await bcrypt.hash(password, 12);
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashed,
-      roles: {
-        create: roleIds.map((roleId) => ({ roleId })),
-      },
+export async function loginAction(formData: FormData) {
+  const username = formData.get("username") as string
+  const password = formData.get("password") as string
+
+  if (!username || !password) {
+    return { error: "Username dan password harus diisi" }
+  }
+
+  return { success: true }
+}
+
+// ==================== POSTS ====================
+
+export async function getPosts(params?: { status?: string; categoryId?: string; featured?: boolean; limit?: number }) {
+  const where: any = {}
+  if (params?.status) where.status = params.status
+  if (params?.categoryId) where.categoryId = params.categoryId
+  if (params?.featured !== undefined) where.featured = params.featured
+
+  const posts = await prisma.post.findMany({
+    where,
+    include: {
+      author: { select: { name: true } },
+      category: true,
     },
-  });
+    orderBy: { publishedAt: "desc" },
+    take: params?.limit,
+  })
 
-  revalidatePath("/admin/users");
-  return { success: true, data: user };
+  return posts
 }
 
-export async function updateUser(id: number, formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const isActive = formData.get("isActive") === "on";
-  const roleIds = formData.getAll("roleIds").map(Number);
-
-  const data: any = { name, email, isActive };
-  if (password) {
-    data.password = await bcrypt.hash(password, 12);
-  }
-
-  const user = await prisma.user.update({
-    where: { id },
-    data,
-  });
-
-  // Update roles
-  await prisma.userRole.deleteMany({ where: { userId: id } });
-  await prisma.userRole.createMany({
-    data: roleIds.map((roleId) => ({ userId: id, roleId })),
-  });
-
-  revalidatePath("/admin/users");
-  return { success: true, data: user };
+export async function getPostBySlug(slug: string) {
+  return prisma.post.findUnique({
+    where: { slug },
+    include: {
+      author: { select: { name: true } },
+      category: true,
+      tags: { include: { tag: true } },
+    },
+  })
 }
 
-export async function deleteUser(id: number) {
-  await prisma.user.delete({ where: { id } });
-  revalidatePath("/admin/users");
-  return { success: true };
-}
+export async function createPost(_prevState: any, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
 
-// ─── Role Actions ───────────────────────────────────────────
-export async function createRole(formData: FormData) {
-  const name = formData.get("name") as string;
-  const displayName = formData.get("displayName") as string;
-  const description = formData.get("description") as string;
+  const title = formData.get("title") as string
+  const content = formData.get("content") as string
+  const excerpt = formData.get("excerpt") as string
+  const image = formData.get("image") as string
+  const status = formData.get("status") as string
+  const featured = formData.get("featured") === "true"
+  const categoryId = formData.get("categoryId") as string
 
-  const role = await prisma.role.create({
-    data: { name, displayName, description },
-  });
+  if (!title || !content) return { error: "Judul dan konten harus diisi" }
 
-  revalidatePath("/admin/roles");
-  return { success: true, data: role };
-}
+  let slug = slugify(title)
+  const existing = await prisma.post.findUnique({ where: { slug } })
+  if (existing) slug += "-" + Date.now()
 
-export async function updateRole(id: number, formData: FormData) {
-  const name = formData.get("name") as string;
-  const displayName = formData.get("displayName") as string;
-  const description = formData.get("description") as string;
-
-  const role = await prisma.role.update({
-    where: { id },
-    data: { name, displayName, description },
-  });
-
-  revalidatePath("/admin/roles");
-  return { success: true, data: role };
-}
-
-export async function deleteRole(id: number) {
-  await prisma.role.delete({ where: { id } });
-  revalidatePath("/admin/roles");
-  return { success: true };
-}
-
-// ─── Post Actions ───────────────────────────────────────────
-export async function createPost(formData: FormData) {
-  const title = formData.get("title") as string;
-  const content = formData.get("content") as string;
-  const excerpt = formData.get("excerpt") as string;
-  const image = formData.get("image") as string;
-  const status = formData.get("status") as string;
-  const featured = formData.get("featured") === "on";
-  const categoryId = formData.get("categoryId")
-    ? Number(formData.get("categoryId"))
-    : null;
-  const authorId = Number(formData.get("authorId"));
-  const tagIds = formData.getAll("tagIds").map(Number);
-
-  let slug = slugify(title);
-
-  // Ensure unique slug
-  const existing = await prisma.post.findUnique({ where: { slug } });
-  if (existing) {
-    slug = slug + "-" + Date.now();
-  }
-
-  const post = await prisma.post.create({
+  await prisma.post.create({
     data: {
       title,
       slug,
       content,
       excerpt,
-      image,
-      status,
+      image: image || null,
+      status: status || "draft",
       featured,
-      categoryId,
-      authorId,
       publishedAt: status === "published" ? new Date() : null,
-      tags: {
-        create: tagIds.map((tagId) => ({ tagId })),
-      },
+      authorId: session.user.id,
+      categoryId: categoryId || null,
     },
-  });
+  })
 
-  revalidatePath("/admin/posts");
-  revalidatePath("/berita");
-  return { success: true, data: post };
+  revalidatePath("/admin/posts")
+  revalidatePath("/")
+  revalidatePath("/berita")
+  return { success: true }
 }
 
-export async function updatePost(id: number, formData: FormData) {
-  const title = formData.get("title") as string;
-  const content = formData.get("content") as string;
-  const excerpt = formData.get("excerpt") as string;
-  const image = formData.get("image") as string;
-  const status = formData.get("status") as string;
-  const featured = formData.get("featured") === "on";
-  const categoryId = formData.get("categoryId")
-    ? Number(formData.get("categoryId"))
-    : null;
-  const tagIds = formData.getAll("tagIds").map(Number);
+export async function updatePost(id: string, _prevState: any, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const title = formData.get("title") as string
+  const content = formData.get("content") as string
+  const excerpt = formData.get("excerpt") as string
+  const image = formData.get("image") as string
+  const status = formData.get("status") as string
+  const featured = formData.get("featured") === "true"
+  const categoryId = formData.get("categoryId") as string
+
+  if (!title || !content) return { error: "Judul dan konten harus diisi" }
+
+  const post = await prisma.post.findUnique({ where: { id } })
+  if (!post) return { error: "Post not found" }
+
+  let slug = slugify(title)
+  if (slug !== post.slug) {
+    const existing = await prisma.post.findUnique({ where: { slug } })
+    if (existing) slug += "-" + Date.now()
+  }
 
   const data: any = {
     title,
+    slug,
     content,
-    excerpt,
-    image,
+    excerpt: excerpt || null,
+    image: image || null,
     status,
     featured,
-    categoryId,
-  };
-
-  if (status === "published") {
-    data.publishedAt = new Date();
+    categoryId: categoryId || null,
   }
 
-  if (title) {
-    data.slug = slugify(title);
-    const existing = await prisma.post.findFirst({
-      where: { slug: data.slug, id: { not: id } },
-    });
-    if (existing) {
-      data.slug = data.slug + "-" + Date.now();
-    }
+  if (status === "published" && !post.publishedAt) {
+    data.publishedAt = new Date()
   }
 
-  await prisma.post.update({ where: { id }, data });
+  await prisma.post.update({ where: { id }, data })
 
-  // Update tags
-  await prisma.postTag.deleteMany({ where: { postId: id } });
-  await prisma.postTag.createMany({
-    data: tagIds.map((tagId) => ({ postId: id, tagId })),
-  });
-
-  revalidatePath("/admin/posts");
-  revalidatePath("/berita");
-  return { success: true };
+  revalidatePath("/admin/posts")
+  revalidatePath("/admin/posts/" + id + "/edit")
+  revalidatePath("/")
+  revalidatePath("/berita")
+  revalidatePath("/berita/" + post.slug)
+  return { success: true }
 }
 
-export async function deletePost(id: number) {
-  await prisma.post.delete({ where: { id } });
-  revalidatePath("/admin/posts");
-  revalidatePath("/berita");
-  return { success: true };
+export async function deletePost(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const post = await prisma.post.findUnique({ where: { id } })
+  if (!post) return { error: "Post not found" }
+
+  await prisma.post.delete({ where: { id } })
+
+  revalidatePath("/admin/posts")
+  revalidatePath("/")
+  revalidatePath("/berita")
+  return { success: true }
 }
 
-// ─── Category Actions ──────────────────────────────────────
-export async function createCategory(formData: FormData) {
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const color = formData.get("color") as string;
+// ==================== CATEGORIES ====================
 
-  const category = await prisma.category.create({
-    data: { name, slug: slugify(name), description, color },
-  });
-
-  revalidatePath("/admin/categories");
-  return { success: true, data: category };
+export async function getCategories() {
+  return prisma.category.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { posts: true } } },
+  })
 }
 
-export async function updateCategory(id: number, formData: FormData) {
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const color = formData.get("color") as string;
+export async function createCategory(_prevState: any, formData: FormData) {
+  const name = formData.get("name") as string
+  const color = formData.get("color") as string
+  if (!name) return { error: "Nama kategori harus diisi" }
 
-  const category = await prisma.category.update({
+  let slug = slugify(name)
+  const existing = await prisma.category.findUnique({ where: { slug } })
+  if (existing) slug += "-" + Date.now()
+
+  await prisma.category.create({
+    data: { name, slug, color: color || "#DC2626" },
+  })
+
+  revalidatePath("/admin/categories")
+  return { success: true }
+}
+
+export async function updateCategory(id: string, formData: FormData) {
+  const name = formData.get("name") as string
+  const color = formData.get("color") as string
+  if (!name) return { error: "Nama kategori harus diisi" }
+
+  let slug = slugify(name)
+  const existing = await prisma.category.findFirst({ where: { slug, NOT: { id } } })
+  if (existing) slug += "-" + Date.now()
+
+  await prisma.category.update({
     where: { id },
-    data: { name, slug: slugify(name), description, color },
-  });
+    data: { name, slug, color: color || "#DC2626" },
+  })
 
-  revalidatePath("/admin/categories");
-  return { success: true, data: category };
+  revalidatePath("/admin/categories")
+  return { success: true }
 }
 
-export async function deleteCategory(id: number) {
-  await prisma.category.delete({ where: { id } });
-  revalidatePath("/admin/categories");
-  return { success: true };
+export async function deleteCategory(id: string) {
+  await prisma.category.delete({ where: { id } })
+  revalidatePath("/admin/categories")
+  return { success: true }
 }
 
-// ─── Tag Actions ────────────────────────────────────────────
-export async function createTag(formData: FormData) {
-  const name = formData.get("name") as string;
-  const tag = await prisma.tag.create({
-    data: { name, slug: slugify(name) },
-  });
-  revalidatePath("/admin/tags");
-  return { success: true, data: tag };
+// ==================== PAGES ====================
+
+export async function getPages() {
+  return prisma.page.findMany({ orderBy: { createdAt: "desc" } })
 }
 
-export async function deleteTag(id: number) {
-  await prisma.tag.delete({ where: { id } });
-  revalidatePath("/admin/tags");
-  return { success: true };
+export async function getPageBySlug(slug: string) {
+  return prisma.page.findUnique({
+    where: { slug, status: "published" },
+  })
 }
 
-// ─── Page Actions ──────────────────────────────────────────
 export async function createPage(formData: FormData) {
-  const title = formData.get("title") as string;
-  const content = formData.get("content") as string;
-  const status = formData.get("status") as string || "draft";
-  const layout = formData.get("layout") as string || "default";
-  const order = Number(formData.get("order")) || 0;
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
 
-  const page = await prisma.page.create({
+  const title = formData.get("title") as string
+  const content = formData.get("content") as string
+  const layout = formData.get("layout") as string
+  const status = formData.get("status") as string
+
+  if (!title || !content) return { error: "Judul dan konten harus diisi" }
+
+  let slug = slugify(title)
+  const existing = await prisma.page.findUnique({ where: { slug } })
+  if (existing) slug += "-" + Date.now()
+
+  await prisma.page.create({
     data: {
       title,
-      slug: slugify(title),
+      slug,
       content,
-      status,
-      layout,
-      order,
+      layout: layout || "default",
+      status: status || "draft",
     },
-  });
+  })
 
-  revalidatePath("/admin/pages");
-  return { success: true, data: page };
+  revalidatePath("/admin/pages")
+  return { success: true }
 }
 
-export async function updatePage(id: number, formData: FormData) {
-  const title = formData.get("title") as string;
-  const content = formData.get("content") as string;
-  const status = formData.get("status") as string;
-  const layout = formData.get("layout") as string;
-  const order = Number(formData.get("order")) || 0;
+export async function updatePage(id: string, formData: FormData) {
+  const title = formData.get("title") as string
+  const content = formData.get("content") as string
+  const layout = formData.get("layout") as string
+  const status = formData.get("status") as string
 
-  const data: any = { title, content, status, layout, order };
-  data.slug = slugify(title);
+  if (!title || !content) return { error: "Judul dan konten harus diisi" }
 
-  await prisma.page.update({ where: { id }, data });
-  revalidatePath("/admin/pages");
-  return { success: true };
-}
+  const page = await prisma.page.findUnique({ where: { id } })
+  if (!page) return { error: "Page not found" }
 
-export async function deletePage(id: number) {
-  await prisma.page.delete({ where: { id } });
-  revalidatePath("/admin/pages");
-  return { success: true };
-}
+  let slug = slugify(title)
+  if (slug !== page.slug) {
+    const existing = await prisma.page.findFirst({ where: { slug, NOT: { id } } })
+    if (existing) slug += "-" + Date.now()
+  }
 
-// ─── Menu Actions ──────────────────────────────────────────
-export async function createMenu(formData: FormData) {
-  const name = formData.get("name") as string;
-  const location = formData.get("location") as string;
-
-  const menu = await prisma.menu.create({
-    data: { name, location },
-  });
-
-  revalidatePath("/admin/menus");
-  return { success: true, data: menu };
-}
-
-export async function deleteMenu(id: number) {
-  await prisma.menu.delete({ where: { id } });
-  revalidatePath("/admin/menus");
-  return { success: true };
-}
-
-export async function addMenuItem(formData: FormData) {
-  const label = formData.get("label") as string;
-  const url = formData.get("url") as string;
-  const pageId = formData.get("pageId")
-    ? Number(formData.get("pageId"))
-    : null;
-  const menuId = Number(formData.get("menuId"));
-  const parentId = formData.get("parentId")
-    ? Number(formData.get("parentId"))
-    : null;
-  const order = Number(formData.get("order")) || 0;
-
-  const item = await prisma.menuItem.create({
-    data: { label, url, pageId, menuId, parentId, order },
-  });
-
-  revalidatePath("/admin/menus");
-  return { success: true, data: item };
-}
-
-export async function updateMenuItem(id: number, formData: FormData) {
-  const label = formData.get("label") as string;
-  const url = formData.get("url") as string;
-  const pageId = formData.get("pageId")
-    ? Number(formData.get("pageId"))
-    : null;
-  const order = Number(formData.get("order")) || 0;
-  const isActive = formData.get("isActive") === "on";
-
-  await prisma.menuItem.update({
+  await prisma.page.update({
     where: { id },
-    data: { label, url, pageId, order, isActive },
-  });
+    data: { title, slug, content, layout, status },
+  })
 
-  revalidatePath("/admin/menus");
-  return { success: true };
+  revalidatePath("/admin/pages")
+  return { success: true }
 }
 
-export async function deleteMenuItem(id: number) {
-  await prisma.menuItem.delete({ where: { id } });
-  revalidatePath("/admin/menus");
-  return { success: true };
+export async function deletePage(id: string) {
+  await prisma.page.delete({ where: { id } })
+  revalidatePath("/admin/pages")
+  return { success: true }
 }
 
-// ─── Album Actions ──────────────────────────────────────────
+// ==================== MENUS ====================
+
+export async function getMenus() {
+  return prisma.menu.findMany({
+    include: {
+      items: {
+        include: {
+          children: true,
+          page: { select: { title: true, slug: true } },
+        },
+        orderBy: { order: "asc" },
+        where: { parentId: null },
+      },
+    },
+  })
+}
+
+export async function getMenuByLocation(location: string) {
+  return prisma.menu.findUnique({
+    where: { location },
+    include: {
+      items: {
+        include: {
+          children: {
+            include: { page: { select: { title: true, slug: true } } },
+            orderBy: { order: "asc" },
+          },
+          page: { select: { title: true, slug: true } },
+        },
+        orderBy: { order: "asc" },
+        where: { parentId: null },
+      },
+    },
+  })
+}
+
+export async function createMenu(formData: FormData) {
+  const name = formData.get("name") as string
+  const location = formData.get("location") as string
+  if (!name || !location) return { error: "Nama dan lokasi harus diisi" }
+
+  await prisma.menu.create({ data: { name, location } })
+  revalidatePath("/admin/menus")
+  return { success: true }
+}
+
+export async function createMenuItem(formData: FormData) {
+  const label = formData.get("label") as string
+  const url = formData.get("url") as string
+  const pageId = formData.get("pageId") as string
+  const parentId = formData.get("parentId") as string
+  const menuId = formData.get("menuId") as string
+
+  if (!label || !menuId) return { error: "Label dan menu harus diisi" }
+
+  const count = await prisma.menuItem.count({ where: { menuId, parentId: parentId || null } })
+
+  await prisma.menuItem.create({
+    data: {
+      label,
+      url: url || null,
+      pageId: pageId || null,
+      parentId: parentId || null,
+      menuId,
+      order: count,
+    },
+  })
+
+  revalidatePath("/admin/menus")
+  return { success: true }
+}
+
+export async function deleteMenuItem(id: string) {
+  await prisma.menuItem.delete({ where: { id } })
+  revalidatePath("/admin/menus")
+  return { success: true }
+}
+
+export async function deleteMenu(id: string) {
+  await prisma.menu.delete({ where: { id } })
+  revalidatePath("/admin/menus")
+  return { success: true }
+}
+
+// ==================== ALBUMS ====================
+
+export async function getAlbums() {
+  return prisma.album.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { items: true } } },
+  })
+}
+
+export async function getAlbumBySlug(slug: string) {
+  return prisma.album.findUnique({
+    where: { slug },
+    include: { items: { orderBy: { createdAt: "desc" } } },
+  })
+}
+
 export async function createAlbum(formData: FormData) {
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const coverImage = formData.get("coverImage") as string;
+  const title = formData.get("title") as string
+  const description = formData.get("description") as string
+  const coverImage = formData.get("coverImage") as string
 
-  const album = await prisma.album.create({
-    data: { title, slug: slugify(title), description, coverImage },
-  });
+  if (!title) return { error: "Judul album harus diisi" }
 
-  revalidatePath("/admin/albums");
-  return { success: true, data: album };
+  let slug = slugify(title)
+  const existing = await prisma.album.findUnique({ where: { slug } })
+  if (existing) slug += "-" + Date.now()
+
+  await prisma.album.create({
+    data: {
+      title,
+      slug,
+      description: description || null,
+      coverImage: coverImage || null,
+    },
+  })
+
+  revalidatePath("/admin/albums")
+  revalidatePath("/galeri")
+  return { success: true }
 }
 
-export async function updateAlbum(id: number, formData: FormData) {
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const coverImage = formData.get("coverImage") as string;
+export async function updateAlbum(id: string, formData: FormData) {
+  const title = formData.get("title") as string
+  const description = formData.get("description") as string
+  const coverImage = formData.get("coverImage") as string
+
+  if (!title) return { error: "Judul album harus diisi" }
+
+  const album = await prisma.album.findUnique({ where: { id } })
+  if (!album) return { error: "Album not found" }
+
+  let slug = slugify(title)
+  if (slug !== album.slug) {
+    const existing = await prisma.album.findFirst({ where: { slug, NOT: { id } } })
+    if (existing) slug += "-" + Date.now()
+  }
 
   await prisma.album.update({
     where: { id },
-    data: { title, slug: slugify(title), description, coverImage },
-  });
+    data: { title, slug, description: description || null, coverImage: coverImage || null },
+  })
 
-  revalidatePath("/admin/albums");
-  return { success: true };
+  revalidatePath("/admin/albums")
+  revalidatePath("/galeri")
+  return { success: true }
 }
 
-export async function deleteAlbum(id: number) {
-  await prisma.album.delete({ where: { id } });
-  revalidatePath("/admin/albums");
-  return { success: true };
+export async function deleteAlbum(id: string) {
+  await prisma.album.delete({ where: { id } })
+  revalidatePath("/admin/albums")
+  revalidatePath("/galeri")
+  return { success: true }
 }
 
-// ─── Gallery Actions ────────────────────────────────────────
-export async function addGalleryItem(formData: FormData) {
-  const title = formData.get("title") as string;
-  const image = formData.get("image") as string;
-  const description = formData.get("description") as string;
-  const albumId = formData.get("albumId")
-    ? Number(formData.get("albumId"))
-    : null;
-  const type = formData.get("type") as string || "image";
-  const url = formData.get("url") as string;
+// ==================== GALLERY ====================
 
-  const item = await prisma.galleryItem.create({
-    data: { title, image, description, albumId, type, url },
-  });
+export async function createGalleryItem(formData: FormData) {
+  const title = formData.get("title") as string
+  const image = formData.get("image") as string
+  const description = formData.get("description") as string
+  const albumId = formData.get("albumId") as string
 
-  revalidatePath("/admin/gallery");
-  return { success: true, data: item };
+  if (!image || !albumId) return { error: "Gambar dan album harus diisi" }
+
+  await prisma.galleryItem.create({
+    data: {
+      title: title || null,
+      image,
+      description: description || null,
+      albumId,
+    },
+  })
+
+  revalidatePath("/admin/gallery")
+  revalidatePath("/galeri")
+  return { success: true }
 }
 
-export async function deleteGalleryItem(id: number) {
-  await prisma.galleryItem.delete({ where: { id } });
-  revalidatePath("/admin/gallery");
-  return { success: true };
+export async function deleteGalleryItem(id: string) {
+  await prisma.galleryItem.delete({ where: { id } })
+  revalidatePath("/admin/gallery")
+  revalidatePath("/galeri")
+  return { success: true }
 }
 
-// ─── Contact Actions ────────────────────────────────────────
-export async function markContactRead(id: number) {
-  await prisma.contact.update({
+// ==================== TESTIMONIALS ====================
+
+export async function getTestimonials() {
+  return prisma.testimonial.findMany({
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  })
+}
+
+export async function getActiveTestimonials() {
+  return prisma.testimonial.findMany({
+    where: { isActive: true },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  })
+}
+
+export async function createTestimonial(formData: FormData) {
+  const name = formData.get("name") as string
+  const content = formData.get("content") as string
+  const title = formData.get("title") as string
+  const photo = formData.get("photo") as string
+  const order = parseInt(formData.get("order") as string) || 0
+
+  if (!name || !content) return { error: "Nama dan testimoni harus diisi" }
+
+  await prisma.testimonial.create({
+    data: { name, content, title: title || null, photo: photo || null, order },
+  })
+
+  revalidatePath("/admin/testimonials")
+  revalidatePath("/")
+  return { success: true }
+}
+
+export async function updateTestimonial(id: string, formData: FormData) {
+  const name = formData.get("name") as string
+  const content = formData.get("content") as string
+  const title = formData.get("title") as string
+  const photo = formData.get("photo") as string
+  const isActive = formData.get("isActive") === "true"
+  const order = parseInt(formData.get("order") as string) || 0
+
+  if (!name || !content) return { error: "Nama dan testimoni harus diisi" }
+
+  await prisma.testimonial.update({
     where: { id },
-    data: { isRead: true },
-  });
-  revalidatePath("/admin/contacts");
-  return { success: true };
+    data: { name, content, title: title || null, photo: photo || null, isActive, order },
+  })
+
+  revalidatePath("/admin/testimonials")
+  revalidatePath("/")
+  return { success: true }
 }
 
-export async function deleteContact(id: number) {
-  await prisma.contact.delete({ where: { id } });
-  revalidatePath("/admin/contacts");
-  return { success: true };
+export async function deleteTestimonial(id: string) {
+  await prisma.testimonial.delete({ where: { id } })
+  revalidatePath("/admin/testimonials")
+  revalidatePath("/")
+  return { success: true }
 }
 
-// ─── Settings Actions ──────────────────────────────────────
-export async function updateProfile(formData: FormData) {
-  const data: any = {};
-  const fields = [
-    "schoolName", "shortName", "slogan", "description",
-    "address", "phone", "email", "website", "logo", "favicon",
-    "vision", "mission", "about", "history",
-    "youtubeUrl", "instagramUrl", "facebookUrl", "twitterUrl",
-  ];
+// ==================== PARTNERS ====================
 
-  for (const field of fields) {
-    const value = formData.get(field);
-    if (value) data[field] = value;
+export async function getPartners() {
+  return prisma.partner.findMany({
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  })
+}
+
+export async function getActivePartners() {
+  return prisma.partner.findMany({
+    where: { isActive: true },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  })
+}
+
+export async function createPartner(_prevState: any, formData: FormData) {
+  const name = formData.get("name") as string
+  const logo = formData.get("logo") as string
+  const description = formData.get("description") as string
+  const website = formData.get("website") as string
+  const order = parseInt(formData.get("order") as string) || 0
+
+  if (!name || !logo) return { error: "Nama dan logo mitra harus diisi" }
+
+  await prisma.partner.create({
+    data: { name, logo, description: description || null, website: website || null, order },
+  })
+
+  revalidatePath("/admin/partners")
+  revalidatePath("/", "layout")
+  return { success: true }
+}
+
+export async function updatePartner(id: string, _prevState: any, formData: FormData) {
+  const name = formData.get("name") as string
+  const logo = formData.get("logo") as string
+  const description = formData.get("description") as string
+  const website = formData.get("website") as string
+  const isActive = formData.get("isActive") === "true"
+  const order = parseInt(formData.get("order") as string) || 0
+
+  if (!name || !logo) return { error: "Nama dan logo mitra harus diisi" }
+
+  await prisma.partner.update({
+    where: { id },
+    data: { name, logo, description: description || null, website: website || null, isActive, order },
+  })
+
+  revalidatePath("/admin/partners")
+  revalidatePath("/", "layout")
+  return { success: true }
+}
+
+export async function deletePartner(id: string) {
+  await prisma.partner.delete({ where: { id } })
+  revalidatePath("/admin/partners")
+  revalidatePath("/", "layout")
+  return { success: true }
+}
+
+// ==================== CONTACTS ====================
+
+export async function submitContact(_prevState: any, formData: FormData) {
+  const name = formData.get("name") as string
+  const email = formData.get("email") as string
+  const phone = formData.get("phone") as string
+  const subject = formData.get("subject") as string
+  const message = formData.get("message") as string
+  const captchaToken = formData.get("captchaToken") as string
+  const captchaAnswer = formData.get("captchaAnswer") as string
+
+  if (!name || !email || !message) return { error: "Nama, email, dan pesan harus diisi" }
+
+  // Validate captcha
+  if (!captchaToken || !captchaAnswer) {
+    return { error: "Harap isi verifikasi keamanan", captchaError: true }
   }
 
-  const profile = await prisma.siteProfile.upsert({
-    where: { id: 1 },
-    update: data,
-    create: { ...data },
-  });
+  const { validateCaptcha } = await import("@/lib/math-captcha")
+  if (!validateCaptcha(captchaToken, captchaAnswer)) {
+    return { error: "Jawaban captcha salah", captchaError: true }
+  }
 
-  revalidatePath("/admin/settings");
-  return { success: true, data: profile };
+  await prisma.contact.create({
+    data: { name, email, phone: phone || null, subject: subject || null, message },
+  })
+
+  return { success: true }
 }
 
-export async function updateSetting(formData: FormData) {
-  const key = formData.get("key") as string;
-  const value = formData.get("value") as string;
+export async function getContacts() {
+  return prisma.contact.findMany({ orderBy: { createdAt: "desc" } })
+}
 
-  const setting = await prisma.setting.upsert({
+export async function markContactRead(id: string) {
+  const contact = await prisma.contact.findUnique({ where: { id } })
+  if (contact) {
+    await prisma.contact.update({ where: { id }, data: { isRead: !contact.isRead } })
+  }
+  revalidatePath("/admin/contacts")
+  return { success: true }
+}
+
+export async function deleteContact(id: string) {
+  await prisma.contact.delete({ where: { id } })
+  revalidatePath("/admin/contacts")
+  return { success: true }
+}
+
+// ==================== SETTINGS ====================
+
+export async function getSetting(key: string) {
+  const setting = await prisma.setting.findUnique({ where: { key } })
+  return setting?.value || null
+}
+
+export async function setSetting(key: string, value: string) {
+  await prisma.setting.upsert({
     where: { key },
     update: { value },
     create: { key, value },
-  });
+  })
+  revalidatePath("/admin/settings")
+}
 
-  revalidatePath("/admin/settings");
-  return { success: true, data: setting };
+export async function getSiteProfile() {
+  let profile = await prisma.siteProfile.findFirst()
+  if (!profile) {
+    profile = await prisma.siteProfile.create({
+      data: {
+        clubName: "Xenia Club Indonesia",
+        shortName: "DXIC",
+        slogan: "Xenia Menyatukan Kita",
+        description: "Komunitas pemilik mobil Daihatsu Xenia seluruh Indonesia",
+        primaryColor: "#DC2626",
+      },
+    })
+  }
+  return profile
+}
+
+export async function updateSiteProfile(formData: FormData) {
+  const data: any = {}
+  const fields = [
+    "clubName", "shortName", "slogan", "description",
+    "address", "phone", "email", "logo", "favicon",
+    "vision", "mission", "about", "history", "homeBanner",
+    "primaryColor", "instagramUrl", "youtubeUrl",
+    "facebookUrl", "twitterUrl",
+  ]
+
+  for (const field of fields) {
+    const val = formData.get(field)
+    if (val !== null) data[field] = val
+  }
+
+  const memberCount = formData.get("memberCount")
+  const cityCount = formData.get("cityCount")
+  const establishedYear = formData.get("establishedYear")
+
+  if (memberCount) data.memberCount = parseInt(memberCount as string)
+  if (cityCount) data.cityCount = parseInt(cityCount as string)
+  if (establishedYear) data.establishedYear = establishedYear
+
+  const profile = await prisma.siteProfile.findFirst()
+  if (profile) {
+    await prisma.siteProfile.update({ where: { id: profile.id }, data })
+  } else {
+    await prisma.siteProfile.create({ data: data as any })
+  }
+
+  revalidatePath("/admin/settings")
+  revalidatePath("/")
+  return { success: true }
+}
+
+// ==================== USERS ====================
+
+export async function getUsers() {
+  return prisma.user.findMany({
+    include: {
+      roles: { include: { role: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  })
+}
+
+export async function createUser(formData: FormData) {
+  const name = formData.get("name") as string
+  const username = formData.get("username") as string
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
+
+  if (!name || !username || !email || !password) return { error: "Semua field harus diisi" }
+
+  const existingEmail = await prisma.user.findUnique({ where: { email } })
+  if (existingEmail) return { error: "Email sudah terdaftar" }
+
+  const existingUsername = await prisma.user.findUnique({ where: { username } })
+  if (existingUsername) return { error: "Username sudah terdaftar" }
+
+  const hashedPassword = await bcrypt.hash(password, 12)
+
+  await prisma.user.create({
+    data: {
+      name,
+      username,
+      email,
+      password: hashedPassword,
+    },
+  })
+
+  revalidatePath("/admin/users")
+  return { success: true }
+}
+
+export async function toggleUserActive(id: string) {
+  const user = await prisma.user.findUnique({ where: { id } })
+  if (!user) return { error: "User not found" }
+
+  await prisma.user.update({
+    where: { id },
+    data: { isActive: !user.isActive },
+  })
+
+  revalidatePath("/admin/users")
+  return { success: true }
+}
+
+export async function deleteUser(id: string) {
+  await prisma.user.delete({ where: { id } })
+  revalidatePath("/admin/users")
+  return { success: true }
+}
+
+// ==================== ROLES ====================
+
+export async function getRoles() {
+  return prisma.role.findMany({
+    include: { _count: { select: { users: true } } },
+  })
+}
+
+export async function createRole(formData: FormData) {
+  const name = formData.get("name") as string
+  const displayName = formData.get("displayName") as string
+
+  if (!name || !displayName) return { error: "Nama role harus diisi" }
+
+  await prisma.role.create({
+    data: { name: slugify(name), displayName },
+  })
+
+  revalidatePath("/admin/roles")
+  return { success: true }
+}
+
+export async function deleteRole(id: string) {
+  const role = await prisma.role.findUnique({ where: { id } })
+  if (role?.isSystem) return { error: "Role sistem tidak bisa dihapus" }
+
+  await prisma.role.delete({ where: { id } })
+  revalidatePath("/admin/roles")
+  return { success: true }
 }

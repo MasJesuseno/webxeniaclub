@@ -1,13 +1,13 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { SettingsForm } from "./settings-form";
+import { getSiteProfile } from "@/lib/actions"
+import { SettingsForm } from "./settings-form"
 
-export default async function SettingsPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
+export default async function AdminSettingsPage() {
+  const profile = await getSiteProfile()
 
-  const profile = await prisma.siteProfile.findFirst({ where: { id: 1 } });
-
-  return <SettingsForm profile={profile} />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Pengaturan</h1>
+      <SettingsForm profile={JSON.parse(JSON.stringify(profile))} />
+    </div>
+  )
 }

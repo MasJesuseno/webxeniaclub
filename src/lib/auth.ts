@@ -1,77 +1,78 @@
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { prisma } from "./prisma";
-import { verifyRecaptchaToken } from "./recaptcha";
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs"
+import { validateCaptcha } from "./math-captcha"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        captchaToken: { label: "Captcha Token", type: "hidden" },
+        captchaAnswer: { label: "Captcha Answer", type: "hidden" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
+        if (!credentials?.username || !credentials?.password) return null
+
+        const username = credentials.username as string
+        const password = credentials.password as string
+        const captchaToken = credentials.captchaToken as string
+        const captchaAnswer = credentials.captchaAnswer as string
+
+        // Validate captcha
+        if (!captchaToken || !captchaAnswer) return null
+        if (!validateCaptcha(captchaToken, captchaAnswer)) {
+          throw new Error("CaptchaError")
         }
 
-        // Verify Google reCAPTCHA token
-        const captchaToken = (credentials as any).hcaptchaToken as string | undefined;
-        if (!captchaToken || !(await verifyRecaptchaToken(captchaToken))) {
-          return null;
-        }
+        // Dynamic import to avoid loading Prisma in Edge Runtime (middleware)
+        const { prisma } = await import("@/lib/prisma")
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-          include: { roles: { include: { role: true } } },
-        });
+          where: { username },
+          include: {
+            roles: {
+              include: { role: true },
+            },
+          },
+        })
 
-        if (!user || !user.isActive) {
-          return null;
-        }
+        if (!user || !user.isActive) return null
 
-        const passwordMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
-
-        if (!passwordMatch) {
-          return null;
-        }
+        const isValid = await bcrypt.compare(password, user.password)
+        if (!isValid) return null
 
         return {
-          id: String(user.id),
-          email: user.email,
+          id: user.id,
           name: user.name,
-          image: user.image,
+          email: user.email,
           roles: user.roles.map((ur) => ur.role.name),
-        };
+        }
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        token.roles = (user as any).roles || []
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string
+        session.user.roles = token.roles as string[]
+      }
+      return session
+    },
   },
   pages: {
     signIn: "/login",
   },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.roles = (user as any).roles || [];
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).roles = token.roles || [];
-      }
-      return session;
-    },
+  session: {
+    strategy: "jwt",
   },
-});
+})

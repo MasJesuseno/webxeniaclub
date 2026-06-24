@@ -1,20 +1,20 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { UserManager } from "./user-manager";
+import { prisma } from "@/lib/prisma"
+import { UserManager } from "./user-manager"
 
-export default async function UsersPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
+export default async function AdminUsersPage() {
   const users = await prisma.user.findMany({
-    include: { roles: { include: { role: true } } },
+    include: {
+      roles: { include: { role: true } },
+    },
     orderBy: { createdAt: "desc" },
-  });
+  })
 
-  const roles = await prisma.role.findMany({
-    orderBy: { name: "asc" },
-  });
+  const roles = await prisma.role.findMany()
 
-  return <UserManager users={users} roles={roles} />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Pengguna</h1>
+      <UserManager users={users} roles={roles} />
+    </div>
+  )
 }

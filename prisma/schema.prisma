@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,87 +8,72 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  image     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  roles UserRole[]
-  posts Post[]
+  id        String     @id @default(cuid())
+  name      String     @db.VarChar(255)
+  username  String     @unique @db.VarChar(100)
+  email     String     @unique @db.VarChar(255)
+  password  String     @db.VarChar(255)
+  isActive  Boolean    @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  posts     Post[]
+  roles     UserRole[]
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          String     @id @default(cuid())
+  name        String     @unique
   displayName String
-  description String?
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users UserRole[]
+  isSystem    Boolean    @default(false)
+  users       UserRole[]
 }
 
 model UserRole {
-  userId Int
-  roleId Int
+  userId String
+  roleId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
 }
 
-model Category {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  slug        String   @unique
-  description String?
-  color       String   @default("#3B82F6")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Post {
+  id          String    @id @default(cuid())
+  title       String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  content     String    @db.Text
+  excerpt     String?   @db.Text
+  image       String?   @db.Text
+  status      String    @default("draft") @db.VarChar(20) // draft, published, archived
+  featured    Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorId    String
+  categoryId  String?
+  author      User      @relation(fields: [authorId], references: [id])
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags        PostTag[]
+}
 
+model Category {
+  id    String @id @default(cuid())
+  name  String @db.VarChar(100)
+  slug  String @unique @db.VarChar(100)
+  color String @default("#DC2626") @db.VarChar(20)
   posts Post[]
 }
 
 model Tag {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  slug      String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
+  id    String    @id @default(cuid())
+  name  String    @db.VarChar(100)
+  slug  String    @unique @db.VarChar(100)
   posts PostTag[]
 }
 
-model Post {
-  id          Int      @id @default(autoincrement())
-  title       String
-  slug        String   @unique
-  content     String   @db.Text
-  excerpt     String?  @db.Text
-  image       String?
-  status      String   @default("draft") // draft, published, archived
-  featured    Boolean  @default(false)
-  publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  authorId Int
-  author   User @relation(fields: [authorId], references: [id])
-
-  categoryId Int?
-  category   Category? @relation(fields: [categoryId], references: [id])
-
-  tags PostTag[]
-}
-
 model PostTag {
-  postId Int
-  tagId  Int
+  postId String
+  tagId  String
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
@@ -99,158 +81,123 @@ model PostTag {
 }
 
 model Page {
-  id        Int      @id @default(autoincrement())
-  title     String
-  slug      String   @unique
+  id        String   @id @default(cuid())
+  title     String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
   content   String   @db.Text
-  image     String?
-  layout    String   @default("default") // default, full-width, sidebar
-  status    String   @default("draft") // draft, published
-  order     Int      @default(0)
+  layout    String   @default("default") @db.VarChar(20) // default, full-width
+  status    String   @default("published") @db.VarChar(20) // draft, published
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   menuItems MenuItem[]
 }
 
 model Menu {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  location  String     @default("main") // main, footer, sidebar
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  items MenuItem[]
+  id        String     @id @default(cuid())
+  name      String     @db.VarChar(100)
+  location  String     @unique @db.VarChar(20) // header, footer
+  items     MenuItem[]
 }
 
 model MenuItem {
-  id        Int      @id @default(autoincrement())
-  label     String
-  url       String?
-  pageId    Int?
-  page      Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
-  icon      String?
-  target    String   @default("_self") // _self, _blank
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-
-  parentId  Int?
-  parent    MenuItem?  @relation("MenuItemHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children  MenuItem[] @relation("MenuItemHierarchy")
-
-  menuId Int
-  menu   Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id       String   @id @default(cuid())
+  label    String   @db.VarChar(255)
+  url      String?  @db.Text
+  pageId   String?
+  parentId String?
+  menuId   String
+  order    Int      @default(0)
+  isActive Boolean  @default(true)
+  page     Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  parent   MenuItem? @relation("MenuItemParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children MenuItem[] @relation("MenuItemParent")
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
 }
 
 model Album {
-  id          Int      @id @default(autoincrement())
-  title       String
-  slug        String   @unique
-  description String?
-  coverImage  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  items GalleryItem[]
+  id          String        @id @default(cuid())
+  title       String        @db.VarChar(255)
+  slug        String        @unique @db.VarChar(255)
+  description String?       @db.Text
+  coverImage  String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  items       GalleryItem[]
 }
 
 model GalleryItem {
-  id          Int      @id @default(autoincrement())
-  title       String?
-  image       String
-  description String?
-  order       Int      @default(0)
-  type        String   @default("image") // image, video
-  url         String?
-
-  albumId   Int?
-  album     Album? @relation(fields: [albumId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  title       String?  @db.VarChar(255)
+  image       String   @db.Text
+  description String?  @db.Text
+  albumId     String
+  album       Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 }
 
-model Alumni {
-  id              Int      @id @default(autoincrement())
-  name            String
-  photo           String?
-  testimonial     String @db.Text
-  graduationYear  String?
-  order           Int      @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model Testimonial {
+  id            String  @id @default(cuid())
+  name          String  @db.VarChar(255)
+  photo         String? @db.Text
+  content       String  @db.Text
+  title         String? @db.VarChar(255) // e.g., "Anggota DXIC", "Pengurus"
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  logo        String   @db.Text
+  description String?  @db.Text
+  website     String?  @db.Text
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Contact {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String
-  phone     String?
-  subject   String
-  message   String @db.Text
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(255)
+  email     String   @db.VarChar(255)
+  phone     String?  @db.VarChar(50)
+  subject   String?  @db.VarChar(255)
+  message   String   @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Setting {
-  id    Int    @id @default(autoincrement())
-  key   String @unique
+  id    String @id @default(cuid())
+  key   String @unique @db.VarChar(100)
   value String @db.Text
 }
 
 model SiteProfile {
-  id              Int      @id @default(autoincrement())
-  schoolName      String   @default("SMA Annajah")
-  shortName       String   @default("SMA Annajah")
-  slogan          String?
-  description     String?  @db.Text
-  address         String?
-  phone           String?
-  email           String?
-  website         String?
-  logo            String?
-  favicon         String?
-  vision          String?  @db.Text
-  mission         String?  @db.Text
-  about           String?  @db.Text
-  history         String?  @db.Text
-  primaryColor    String   @default("#1e40af")
-  homeBanner      String?
-  homeBannerBrightness Int      @default(35)
-  teacherCount    String   @default("35")
-  studentCount    String   @default("500")
-  establishedYears String  @default("10")
-  achievementCount String  @default("50")
-  youtubeUrl      String?
-  instagramUrl    String?
-  facebookUrl     String?
-  twitterUrl      String?
-
-  // Font & Typography settings
-  headingFont     String   @default("Inter")
-  bodyFont        String   @default("Inter")
-  baseFontSize    String   @default("16")
-  headingWeight   String   @default("700")
-
-  // Feature points (3 poin di samping visi & misi)
-  feature1Title       String   @default("Pendidikan Berkualitas")
-  feature1Description String   @default("Kurikulum terpadu dengan standar nasional")
-  feature2Title       String   @default("Pengembangan Karakter")
-  feature2Description String   @default("Pembentukan akhlak mulia dan budi pekerti")
-  feature3Title       String   @default("Prestasi & Inovasi")
-  feature3Description String   @default("Mendorong siswa berprestasi dan berinovasi")
-
-  // Operational hours for contact page
-  operationalHours   String?  @default("Senin - Jumat: 07:00 - 16:00 WIB")
-
-  // PPDB / Daftar Sekarang button URL
-  ppdbUrl            String?  @default("https://sas.smaannajah.sch.id/ppdb")
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              String @id @default(cuid())
+  clubName        String @db.VarChar(255)
+  shortName       String @db.VarChar(50)
+  slogan          String @db.VarChar(255)
+  description     String? @db.Text
+  address         String? @db.Text
+  phone           String? @db.VarChar(50)
+  email           String? @db.VarChar(255)
+  logo            String? @db.Text
+  favicon         String? @db.Text
+  vision          String? @db.Text
+  mission         String? @db.Text
+  about           String? @db.Text
+  history         String? @db.Text
+  homeBanner      String? @db.Text
+  primaryColor    String @default("#DC2626") @db.VarChar(20)
+  instagramUrl    String? @db.Text
+  youtubeUrl      String? @db.Text
+  facebookUrl     String? @db.Text
+  twitterUrl      String? @db.Text
+  memberCount     Int?
+  cityCount       Int?
+  establishedYear String? @db.VarChar(10)
 }

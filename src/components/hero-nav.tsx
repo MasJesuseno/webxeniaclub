@@ -1,116 +1,174 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { MobileMenu } from "@/components/mobile-menu"
 
-type HeroNavProps = {
-  logo: string | null | undefined;
-  schoolName: string;
-  slogan?: string | null;
-  ppdbUrl?: string;
-};
+interface MenuItem {
+  id: string
+  label: string
+  url: string | null
+  pageId: string | null
+  page: { title: string; slug: string } | null
+  children: MenuItem[]
+}
 
-const menuItems = [
-  { href: "/", label: "Beranda" },
-  { href: "/profil", label: "Profil" },
-  { href: "/berita", label: "Berita" },
-  { href: "/galeri", label: "Galeri" },
-  { href: "/kontak", label: "Kontak" },
-];
+interface HeroNavProps {
+  clubName: string
+  shortName: string
+  logo?: string | null
+  primaryColor?: string
+  menuItems?: MenuItem[]
+  slogan?: string
+}
 
-export function HeroNav({ logo, schoolName, slogan, ppdbUrl }: HeroNavProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+export function HeroNav({ clubName, shortName, logo, primaryColor, menuItems, slogan }: HeroNavProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname()
+
+  const isActive = (item: MenuItem) => {
+    const href = item.url || (item.page ? `/${item.page.slug}` : "#")
+    return pathname === href
+  }
 
   return (
-    <div className="relative bg-primary-100 border-b border-primary-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            {logo ? (
-              <img
-                src={logo}
-                alt={schoolName}
-                className="w-10 h-10 object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 bg-primary-900 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                {schoolName.charAt(0)}
-              </div>
-            )}
-            <div>
-              <span className="font-bold text-primary-900 text-lg leading-tight">
-                {schoolName}
-              </span>
-              {slogan && (
-                <p className="text-xs text-primary-600/70 leading-tight mt-0.5">
-                  {slogan}
-                </p>
+    <>
+      {/* Top Bar */}
+      <div className="dxic-gradient text-white text-sm">
+        <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between">
+          <span className="font-medium">{slogan || "Xenia Menyatukan Kita"}</span>
+          <div className="flex items-center gap-4">
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">Instagram</a>
+            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">YouTube</a>
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">Facebook</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3 group">
+              {logo ? (
+                <img src={logo} alt={shortName} className="h-12 w-auto" />
+              ) : (
+                <div className="w-12 h-12 dxic-gradient rounded-lg flex items-center justify-center text-white font-bold text-lg group-hover:shadow-lg transition-shadow">
+                  {shortName?.charAt(0) || "D"}
+                </div>
               )}
-            </div>
-          </Link>
-
-          {/* Desktop Menu */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-900 hover:bg-primary-200 rounded-lg transition-all"
-              >
-                {item.label}
-              </Link>
-            ))}
-            <Link
-              href={ppdbUrl || "https://sas.smaannajah.sch.id/ppdb"}
-              className="ml-3 px-6 py-2.5 bg-primary-900 text-white text-base font-bold rounded-lg hover:bg-primary-800 transition-all shadow-md"
-            >
-              Daftar Sekarang
+              <div className="hidden sm:block">
+                <h1 className="font-bold text-xl text-gray-900">{shortName}</h1>
+                <p className="text-xs text-gray-500 -mt-1">{clubName}</p>
+              </div>
             </Link>
-          </nav>
 
-          {/* Mobile menu button */}
-          <button
-            className="lg:hidden p-2 rounded-lg text-primary-700 hover:text-primary-900 hover:bg-primary-200 transition-all"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {/* Desktop Menu */}
+            <div className="hidden lg:flex items-center gap-1">
+              <Link
+                href="/"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  pathname === "/"
+                    ? "bg-red-50 text-red-600"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                }`}
+              >
+                Beranda
+              </Link>
+              {(menuItems || []).map((item) => {
+                const href = item.url || (item.page ? `/${item.page.slug}` : "#")
+                return (
+                  <div key={item.id} className="relative group">
+                    <Link
+                      href={href}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1 ${
+                        isActive(item)
+                          ? "bg-red-50 text-red-600"
+                          : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                      }`}
+                    >
+                      {item.label}
+                      {item.children && item.children.length > 0 && (
+                        <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
+                    </Link>
+                    {item.children && item.children.length > 0 && (
+                      <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[200px] py-2 z-50">
+                        {item.children.map((child) => {
+                          const childHref = child.url || (child.page ? `/${child.page.slug}` : "#")
+                          return (
+                            <Link
+                              key={child.id}
+                              href={childHref}
+                              className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                            >
+                              {child.label}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              <Link
+                href="/berita"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  pathname.startsWith("/berita")
+                    ? "bg-red-50 text-red-600"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                }`}
+              >
+                Berita
+              </Link>
+              <Link
+                href="/galeri"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  pathname.startsWith("/galeri")
+                    ? "bg-red-50 text-red-600"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                }`}
+              >
+                Galeri
+              </Link>
+              <Link
+                href="/kontak"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  pathname.startsWith("/kontak")
+                    ? "bg-red-50 text-red-600"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                }`}
+              >
+                Kontak
+              </Link>
+            </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+              aria-label="Buka menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="lg:hidden pb-4 border-t border-primary-200 pt-4">
-            <div className="flex flex-col gap-1">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="block px-4 py-3 text-sm font-medium text-primary-700 hover:text-primary-900 hover:bg-primary-200 rounded-lg transition-all"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <Link
-                href={ppdbUrl || "https://sas.smaannajah.sch.id/ppdb"}
-                className="mt-2 block px-5 py-3 text-base font-bold bg-primary-900 text-white rounded-lg text-center hover:bg-primary-800 transition-all shadow-md"
-                onClick={() => setMobileOpen(false)}
-              >
-                Daftar Sekarang
-              </Link>
-            </div>
+            </button>
           </div>
-        )}
-      </div>
-    </div>
-  );
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      <MobileMenu
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        clubName={clubName}
+        shortName={shortName}
+        menuItems={menuItems || []}
+      />
+    </>
+  )
 }

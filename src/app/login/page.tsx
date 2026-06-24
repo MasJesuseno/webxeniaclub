@@ -1,172 +1,132 @@
-"use client";
+"use client"
 
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import ReCAPTCHA from "react-google-recaptcha";
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { MathCaptcha } from "@/components/math-captcha"
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [captchaError, setCaptchaError] = useState(false);
-  const captchaRef = useRef<ReCAPTCHA>(null);
+  const router = useRouter()
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [captchaError, setCaptchaError] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setCaptchaError(false);
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
-    if (!captchaToken) {
-      setCaptchaError(true);
-      return;
+    const formData = new FormData(e.currentTarget)
+    const username = formData.get("username") as string
+    const password = formData.get("password") as string
+    const captchaToken = formData.get("captchaToken") as string
+    const captchaAnswer = formData.get("captchaAnswer") as string
+
+    if (!captchaToken || !captchaAnswer) {
+      setError("Harap isi verifikasi keamanan")
+      setLoading(false)
+      return
     }
 
-    setLoading(true);
+    const result = await signIn("credentials", {
+      username,
+      password,
+      captchaToken,
+      captchaAnswer,
+      redirect: false,
+    })
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        hcaptchaToken: captchaToken,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Email atau password salah");
-        captchaRef.current?.reset();
-        setCaptchaToken(null);
+    if (result?.error) {
+      if (result.error === "CaptchaError") {
+        setError("Jawaban captcha salah")
+        setCaptchaError((prev) => !prev)
       } else {
-        router.push("/admin/dashboard");
-        router.refresh();
+        setError("Username atau password salah")
       }
-    } catch {
-      setError("Terjadi kesalahan. Silakan coba lagi.");
-      captchaRef.current?.reset();
-      setCaptchaToken(null);
-    } finally {
-      setLoading(false);
+      setLoading(false)
+    } else {
+      router.push("/admin")
+      router.refresh()
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur rounded-2xl mb-4">
-            <span className="text-3xl font-bold text-white">A</span>
+          <div className="w-16 h-16 dxic-gradient rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">
+            D
           </div>
-          <h1 className="text-3xl font-bold text-white">SMA Annajah</h1>
-          <p className="text-primary-200 mt-2">Panel Administrasi</p>
+          <h1 className="text-2xl font-bold text-gray-900">Panel Admin DXIC</h1>
+          <p className="text-sm text-gray-500 mt-1">Masuk untuk mengelola website</p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <div className="space-y-5">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-primary-100 mb-2"
-              >
-                Email
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Username
               </label>
               <input
-                type="email"
-                name="email"
-                id="email"
+                type="text"
+                id="username"
+                name="username"
                 required
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all"
-                placeholder="admin@smaannajah.sch.id"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm"
+                placeholder="Masukkan username"
               />
             </div>
-
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-primary-100 mb-2"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Password
               </label>
               <input
                 type="password"
-                name="password"
                 id="password"
+                name="password"
                 required
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm"
                 placeholder="Masukkan password"
               />
             </div>
 
-            {/* Google reCAPTCHA */}
-            <div className="flex justify-center">
-              <ReCAPTCHA
-                ref={captchaRef}
-                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                onChange={(token) => {
-                  setCaptchaToken(token);
-                  setCaptchaError(false);
-                }}
-                onExpired={() => {
-                  setCaptchaToken(null);
-                  setCaptchaError(true);
-                }}
-              />
-            </div>
-            {captchaError && (
-              <p className="text-red-300 text-xs text-center">
-                Silakan verifikasi CAPTCHA terlebih dahulu
-              </p>
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </div>
             )}
+
+            <MathCaptcha key={String(captchaError)} />
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-primary-900"
+              className="w-full dxic-gradient text-white py-3.5 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
+                <>
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                   Memproses...
-                </span>
+                </>
               ) : (
                 "Masuk"
               )}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
 
-        <p className="text-center mt-6 text-primary-300 text-sm">
-          &copy; {new Date().getFullYear()} SMA Annajah. All rights reserved.
+        <p className="text-center mt-6 text-xs text-gray-400">
+          &copy; {new Date().getFullYear()} DXIC - Xenia Club Indonesia
         </p>
       </div>
     </div>
-  );
+  )
 }

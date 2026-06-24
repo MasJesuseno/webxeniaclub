@@ -1,7 +1,9 @@
-# 🏫 SMA Annajah — Website & CMS — Project Summary
+# 🏫 DXIC — Xeniaclub Website & CMS — Project Summary
 
-> **Proyek:** Website + Content Management System (CMS) untuk SMA Annajah
-> **Dibuat dengan:** Next.js 16 · TypeScript · Tailwind CSS v4 · Prisma 6 (MySQL) · NextAuth v5
+> **Proyek:** Website + Content Management System (CMS) untuk Xeniaclub (Daihatsu Xenia Indonesia Club / DXIC)
+> **Domain:** xeniaclub.or.id
+> **Slogan:** *Xenia Menyatukan Kita*
+> **Warna Tema:** Merah (#DC2626), Putih, Hitam (#1F2937)
 
 ---
 
@@ -9,11 +11,12 @@
 
 | Item | Detail |
 |------|--------|
-| **Nama Proyek** | SMA Annajah Website & CMS |
-| **Direktori** | `D:\\Web Annajah` |
-| **Database** | MySQL 8.0.30 (`localhost:3306` / `webannajah`) |
-| **User Database** | `root` (tanpa password) |
+| **Nama Proyek** | DXIC Xeniaclub Website & CMS |
+| **Direktori** | `D:\xeniaclub` |
+| **Database** | MySQL 8.4 (`localhost:3306` / `xeniaclub`) |
+| **User Database** | `root` (tanpa password — development) |
 | **Port Development** | `http://localhost:3000` |
+| **Node.js** | v24.16.0 |
 
 ---
 
@@ -24,12 +27,11 @@
 | **Next.js** | 16.2.9 | Framework React (App Router) |
 | **TypeScript** | ^5 | Bahasa pemrograman |
 | **Tailwind CSS** | v4 | Styling & utility classes |
-| **Prisma** | 6.19.3 | ORM Database |
-| **MySQL** | 8.0.30 | Database (`localhost:3306` / `webannajah`) |
-| **NextAuth** | ^5.0.0-beta.31 | Autentikasi admin |
+| **Prisma** | 6.19.3 | ORM Database (MySQL) |
+| **MySQL** | 8.4 | Database (`localhost:3306` / `xeniaclub`) |
+| **NextAuth** | ^5.0.0-beta.31 | Autentikasi admin (Credentials provider) |
 | **bcryptjs** | ^3.0.3 | Enkripsi password |
-| **React** | 19.2.4 | Library UI |
-| **react-google-recaptcha** | - | Google reCAPTCHA v2 (keamanan form) |
+| **React** | ^19 | Library UI |
 
 ---
 
@@ -40,13 +42,15 @@ npm run dev          # Jalankan development server
 npm run build        # Build untuk production
 npm start            # Jalankan production server
 npx tsc --noEmit     # Typecheck
+
+# Database
 npx prisma studio    # Buka GUI database browser
 npx prisma db seed   # Isi ulang data awal
-npx prisma migrate dev --name <nama>  # Migrasi database
+npx prisma migrate dev --name <nama>  # Migrasi database (setelah perubahan schema)
 npx prisma generate  # Generate Prisma client
 
-# MySQL
-"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql" -u root webannajah -e "SELECT * FROM user;"
+# MySQL (via CLI)
+"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql" -u root xeniaclub -e "SHOW TABLES;"
 ```
 
 ---
@@ -55,284 +59,244 @@ npx prisma generate  # Generate Prisma client
 
 | Field | Value |
 |-------|-------|
-| **Email** | `admin@smaannajah.sch.id` |
+| **Email** | `admin@xeniaclub.or.id` |
 | **Password** | `admin123` |
 | **Role** | Super Admin + Editor |
 
-> ⚠️ **Wajib ganti password** sebelum deployment ke production!
+> ⚠️ **WAJIB ganti password** sebelum deployment ke production!
 
 ---
 
 ## 📁 Struktur Proyek
 
 ```
-📁 Web Annajah/
+📁 xeniaclub/
 ├── prisma/
 │   ├── schema.prisma          # Schema database (16 tabel, MySQL)
 │   ├── seed.ts                # Data awal (seeder)
-│   └── migrations/            # Riwayat migrasi database (2 migrasi MySQL)
+│   ├── migrations/            # Riwayat migrasi database
+│   │   └── 20260621084739_init/
+│   │       └── migration.sql
+│   └── seed.sql               # SQL dump untuk import manual
+├── scripts/
+│   └── seed-mysql.js          # Script seed alternatif
 ├── src/
 │   ├── app/
 │   │   ├── (public)/          # Layout publik (HeroNav header + Footer)
+│   │   │   ├── page.tsx       # Halaman utama (hero, visi-misi, berita, galeri, testimoni, CTA)
+│   │   │   ├── layout.tsx     # Layout publik (HeroNav + Footer + ColorTheme)
+│   │   │   ├── home-carousel.tsx     # Client component carousel hero
+│   │   │   ├── testimonial-carousel.tsx  # Client component carousel testimoni
 │   │   │   ├── [slug]/        # Route dinamis halaman statis (Pages)
-│   │   │   ├── profil/        # Halaman profil
-│   │   │   ├── berita/        # Halaman berita publik
-│   │   │   ├── galeri/        # Halaman galeri publik
-│   │   │   └── kontak/        # Halaman kontak (+ Google Maps, Google reCAPTCHA)
-│   │   ├── admin/             # Panel admin
-│   │   │   ├── dashboard/     # Dashboard statistik
-│   │   │   ├── posts/         # CRUD postingan/berita
-│   │   │   ├── categories/    # Kelola kategori
-│   │   │   ├── tags/          # Kelola tag
-│   │   │   ├── pages/         # Halaman statis (dengan ContentEditor)
-│   │   │   ├── menus/         # Menu builder multilevel
-│   │   │   ├── gallery/       # Galeri foto (dengan edit mode)
-│   │   │   ├── albums/        # Album galeri
-│   │   │   ├── alumni/        # ✅ Testimoni Alumni (CRUD + foto)
-│   │   │   ├── users/         # Manajemen pengguna
-│   │   │   ├── roles/         # Role management
-│   │   │   ├── contacts/      # Inbox pesan
-│   │   │   └── settings/      # Pengaturan website (3 tab + Jam Operasional + URL PPDB)
-│   │   ├── login/             # Halaman login admin (+ Google reCAPTCHA)
-│   │   ├── page.tsx           # Halaman utama (hero, visi-misi, berita, galeri, ALUMNI, CTA + Footer)
-│   │   ├── layout.tsx         # Root layout (font, color theme)
-│   │   └── globals.css        # Global styles + section utilities
+│   │   │   ├── profil/        # Halaman profil (tentang, visi, misi, statistik)
+│   │   │   ├── berita/        # Halaman berita publik (+ detail [slug])
+│   │   │   ├── galeri/        # Halaman galeri publik (+ detail album [slug])
+│   │   │   └── kontak/        # Halaman kontak (form + info + medsos)
+│   │   ├── admin/             # Panel admin (dilindungi middleware)
+│   │   │   ├── page.tsx       # Dashboard (statistik real-time)
+│   │   │   ├── layout.tsx     # Layout admin (sidebar + topbar)
+│   │   │   ├── admin-sidebar.tsx  # Sidebar navigasi admin
+│   │   │   ├── posts/         # ✅ CRUD postingan/berita
+│   │   │   ├── categories/    # ✅ CRUD kategori
+│   │   │   ├── contacts/      # ✅ Inbox pesan masuk
+│   │   │   ├── pages/         # ✅ CRUD halaman statis
+│   │   │   ├── menus/         # ✅ Menu builder multilevel
+│   │   │   ├── albums/        # ✅ CRUD album galeri
+│   │   │   ├── gallery/       # ✅ Upload foto per album
+│   │   │   ├── testimonials/  # ✅ CRUD testimoni
+│   │   │   ├── users/         # ✅ CRUD pengguna
+│   │   │   ├── roles/         # ✅ CRUD role
+│   │   │   └── settings/      # ✅ Pengaturan website (profil club)
+│   │   ├── login/             # Halaman login admin
+│   │   ├── layout.tsx         # Root layout (font, globals)
+│   │   └── globals.css        # Global styles + DXIC custom classes
 │   ├── components/
-│   │   ├── footer.tsx         # Footer 3 kolom (self-contained, ambil data dari DB)
-│   │   ├── hero-nav.tsx       # Header seragam (HeroNav + slogan) + tombol Daftar (URL dari DB)
+│   │   ├── hero-nav.tsx       # Header + navigasi + mobile menu
+│   │   ├── footer.tsx         # Footer 3 kolom (data dari DB)
 │   │   ├── mobile-menu.tsx    # Client component menu mobile
-│   │   ├── color-theme.tsx    # Inject CSS variable warna
-│   │   ├── font-style.tsx     # Inject CSS variable font
-│   │   ├── breadcrumb.tsx     # Breadcrumb component
-│   │   ├── content-editor.tsx # Rich text editor (toolbar B,I,U,H2,H3,list,link,gambar,HR,kode)
-│   │   ├── image-upload.tsx   # Reusable upload gambar (drag-drop, preview, validasi)
-│   │   └── gallery-image.tsx  # Client component gambar galeri (fix onError Server Component)
+│   │   ├── color-theme.tsx    # Inject CSS variable warna dinamis
+│   │   ├── content-editor.tsx # Rich text editor (toolbar HTML)
+│   │   ├── image-upload.tsx   # Upload gambar via URL
+│   │   └── ...
 │   ├── lib/
 │   │   ├── actions.ts         # Server actions (CRUD semua modul)
-│   │   ├── auth.ts            # Konfigurasi NextAuth (+ verifikasi Google reCAPTCHA)
+│   │   ├── auth.ts            # Konfigurasi NextAuth (Credentials)
+│   │   ├── auth-types.ts      # Type definitions untuk auth
 │   │   ├── prisma.ts          # Prisma client singleton
-│   │   ├── utils.ts           # Fungsi utilitas (slugify, dll)
-│   │   ├── recaptcha.ts       # ✅ Utility verifikasi Google reCAPTCHA server-side
-│   │   └── color-palette.ts   # Preset warna untuk tema
-│   └── middleware.ts           # Proteksi route /admin
-├── public/uploads/            # Folder upload gambar
-├── .env.local                 # Environment variables (reCAPTCHA keys, NextAuth)
-├── SUMMARY.md                 # File ini
-├── README.md                  # Dokumentasi proyek
-├── package.json               # Dependencies & scripts
-├── next.config.ts             # Konfigurasi Next.js
-├── tsconfig.json              # Konfigurasi TypeScript
-├── postcss.config.mjs         # Konfigurasi PostCSS/Tailwind
-└── eslint.config.mjs          # Konfigurasi ESLint
+│   │   └── utils.ts           # Fungsi utilitas (slugify, formatDate, dll)
+│   └── middleware.ts           # Proteksi route /admin (redirect ke /login)
+├── prisma.config.ts            # Konfigurasi Prisma CLI (datasource url)
+├── SUMMARY.md                  # File ini
+├── AGENTS.md                   # Agent instructions untuk AI coding
+├── CLAUDE.md                   # Claude instructions
+├── package.json                # Dependencies & scripts
+├── next.config.ts              # Konfigurasi Next.js
+├── tsconfig.json               # Konfigurasi TypeScript
+├── postcss.config.mjs          # Konfigurasi PostCSS/Tailwind
+└── eslint.config.mjs           # Konfigurasi ESLint
 ```
 
 ---
 
-## 🗄️ Database Schema (16 Tabel)
+## 🗄️ Database Schema (16 Tabel — MySQL)
 
 | Tabel | Key Fields | Deskripsi |
 |-------|-----------|-----------|
 | **User** | id, name, email, password, isActive | Admin users |
-| **Role** | id, name, displayName, isSystem | Hak akses |
+| **Role** | id, name, displayName, isSystem | Hak akses (Super Admin, Editor) |
 | **UserRole** | userId, roleId | Relasi user ↔ role |
-| **Post** | id, title, slug, content, image, status, featured, authorId, categoryId, publishedAt | Artikel/berita |
+| **Post** | id, title, slug, content (Text), image, status, featured, authorId, categoryId, publishedAt | Artikel/berita |
 | **Category** | id, name, slug, color | Kategori postingan |
 | **Tag** | id, name, slug | Tag postingan |
 | **PostTag** | postId, tagId | Relasi post ↔ tag |
-| **Page** | id, title, slug, content, layout, status | Halaman statis (route: /[slug]) |
-| **Menu** | id, name, location | Grup menu navigasi |
+| **Page** | id, title, slug, content (Text), layout, status | Halaman statis (route: /[slug]) |
+| **Menu** | id, name, location (unique: header/footer) | Grup menu navigasi |
 | **MenuItem** | id, label, url, pageId, parentId, menuId, order, isActive | Item menu multilevel |
-| **Album** | id, title, slug, coverImage | Album galeri |
-| **GalleryItem** | id, title, image, description, albumId, type | Gambar/video galeri |
-| **Alumni** | id, name, photo, testimonial, graduationYear, order, isActive | ✅ Testimoni alumni |
-| **Contact** | id, name, email, phone, subject, message, isRead | Pesan kontak |
-| **Setting** | id, key, value | Pengaturan key-value |
-| **SiteProfile** | id, schoolName, shortName, slogan, description, address, phone, email, logo, favicon, vision, mission, about, history, primaryColor, homeBanner, homeBannerBrightness, teacherCount, studentCount, establishedYears, achievementCount, youtubeUrl, instagramUrl, facebookUrl, twitterUrl, headingFont, bodyFont, baseFontSize, headingWeight, feature1Title, feature1Description, feature2Title, feature2Description, feature3Title, feature3Description, operationalHours, ppdbUrl | Profil sekolah + semua pengaturan (termasuk jam operasional & URL PPDB) |
+| **Album** | id, title, slug, description, coverImage | Album galeri foto |
+| **GalleryItem** | id, title, image, description, albumId | Foto dalam album |
+| **Testimonial** | id, name, photo, content (Text), title, order, isActive | Testimoni anggota |
+| **Contact** | id, name, email, phone, subject, message (Text), isRead | Pesan dari form kontak |
+| **Setting** | id, key (unique), value (Text) | Pengaturan key-value |
+| **SiteProfile** | id, clubName, shortName, slogan, description, address, vision, mission, logo, dll. | Profil klub DXIC |
 
 ---
 
-## ✨ Fitur Lengkap
+## ✅ Status Fitur
 
-### 🌐 Website Publik
+### 🌐 Website Publik (Semua ✅)
 
-| Halaman | Route | Fitur |
-|---------|-------|-------|
-| **Beranda** | `/` | Hero banner (constrained width), berita unggulan, visi-misi + 3 poin unggulan, berita terbaru, galeri preview, **✅ testimoni alumni**, CTA, Footer |
-| **Profil** | `/profil` | Tentang, visi-misi, sejarah, kontak (HTML dari ContentEditor) |
-| **Berita** | `/berita` | Daftar artikel dengan filter kategori |
-| **Detail Berita** | `/berita/[slug]` | Konten lengkap + breadcrumb + artikel terkait |
-| **Galeri** | `/galeri` | Album galeri + foto terbaru |
-| **Detail Album** | `/galeri/[slug]` | Galeri per-album |
-| **Kontak** | `/kontak` | ✅ Form kirim pesan + Google reCAPTCHA + Google Maps + info kontak + jam operasional dari database |
-| **Halaman Statis** | `/[slug]` | Route dinamis untuk halaman dari Menu Pages (Dewan Guru, Ekstrakurikuler, dll) |
+| Halaman | Fitur |
+|---------|-------|
+| **Beranda** | Hero carousel (slogan + berita unggulan), Tentang DXIC, Visi & Misi, Statistik, Berita Unggulan, Berita Terbaru, Album Galeri, Testimoni Carousel, CTA Bergabung |
+| **Profil** | Tentang klub, statistik (anggota/kota/tahun), Visi & Misi lengkap |
+| **Berita** | Daftar berita dengan filter kategori, card grid |
+| **Detail Berita** | Breadcrumb, kategori, penulis, tanggal, konten HTML, gambar unggulan, berita terkait |
+| **Galeri** | Grid foto terbaru, daftar album dengan cover |
+| **Detail Album** | Grid foto per album dengan lightbox preview |
+| **Kontak** | Form kirim pesan, info kontak (alamat/telepon/email), media sosial |
+| **Halaman Statis** | Route dinamis /[slug] untuk halaman dari CMS |
 
-### 🔐 Panel Admin (`/admin/*`)
+### 🔐 Panel Admin (Semua ✅)
 
-| Modul | Route | Fitur |
-|-------|-------|-------|
-| **Dashboard** | `/admin` | Statistik: total postingan, pesan, pengguna, galeri |
-| **Postingan** | `/admin/posts` | CRUD artikel, kategori, tags, status (draft/published/archived), unggulan. Rich text editor dengan toolbar formatting + insert gambar langsung dari editor |
-| **Kategori** | `/admin/categories` | CRUD kategori dengan warna kustom |
-| **Tags** | `/admin/tags` | CRUD tag |
-| **Halaman** | `/admin/pages` | CRUD halaman statis dengan ContentEditor + layout options |
-| **Menu** | `/admin/menus` | Menu builder multilevel (terintegrasi dengan footer) |
-| **Galeri** | `/admin/gallery` | Upload gambar + edit mode (update title, image, description, album) |
-| **Album** | `/admin/albums` | CRUD album dengan upload cover image |
-| **Alumni** | `/admin/alumni` | ✅ CRUD testimoni alumni dengan upload foto, nama, tahun lulus, testimoni |
-| **Pengguna** | `/admin/users` | CRUD pengguna, atur role, aktif/nonaktifkan |
-| **Roles** | `/admin/roles` | Role management (Super Admin, Editor, Penulis) |
-| **Pesan Masuk** | `/admin/contacts` | Inbox dengan fitur read/unread, detail, hapus |
-| **Pengaturan** | `/admin/settings` | **3 tab:** Informasi Umum (data sekolah, kontak, **✅ jam operasional**, **✅ URL PPDB**, visi-misi, statistik, 3 poin unggulan, logo, favicon, banner), Tampilan & Warna (primary color, preview), Font & Tipografi (heading/body font, ukuran, ketebalan, preview) |
+| Modul | Fitur |
+|-------|-------|
+| **Dashboard** | Statistik (postingan, kategori, album, testimoni, pesan, pengguna), daftar postingan & pesan terbaru |
+| **Postingan** | CRUD lengkap, status (draft/published/archived), unggulan, kategori, ContentEditor (rich text), ImageUpload |
+| **Kategori** | CRUD dengan warna kustom |
+| **Halaman** | CRUD halaman statis dengan ContentEditor, layout, status |
+| **Menu** | Menu builder multilevel (header/footer), pilih halaman atau URL manual |
+| **Album** | CRUD album dengan cover image, deskripsi |
+| **Galeri** | Upload foto per album, grid preview, grouped by album |
+| **Testimoni** | CRUD testimoni, urutan, status aktif, foto |
+| **Pesan Masuk** | Inbox, read/unread toggle, hapus |
+| **Pengguna** | CRUD user, toggle aktif/nonaktif |
+| **Role** | CRUD role, proteksi role sistem (tidak bisa dihapus) |
+| **Pengaturan** | Form lengkap: info umum, logo/banner, visi-misi, kontak, statistik, media sosial |
 
-### 🧩 Komponen Reusable
+### 🔧 Fitur Teknis
 
-| Komponen | File | Fungsi |
-|----------|------|--------|
-| **HeroNav** | `src/components/hero-nav.tsx` | Header seragam di semua halaman — logo + nama + slogan, menu statis, mobile menu, **✅ tombol Daftar Sekarang (URL dari database)** |
-| **Footer** | `src/components/footer.tsx` | Footer 3 kolom: Ringkasan + Navigasi (dari Menu Builder) + Kontak (dari database). Self-contained async Server Component |
-| **MobileMenu** | `src/components/mobile-menu.tsx` | Client component untuk menu mobile (dengan onClick handler) |
-| **ContentEditor** | `src/components/content-editor.tsx` | Rich text editor dengan toolbar: **B**, *I*, <u>U</u>, H2, H3, list, OL, link, insert gambar, HR, code. Upload gambar langsung dari editor |
-| **ImageUpload** | `src/components/image-upload.tsx` | Upload gambar dengan drag-drop, preview, validasi tipe/ukuran, toggle URL fallback, hapus gambar existing di mode edit |
-| **GalleryImage** | `src/components/gallery-image.tsx` | Client component untuk `<img>` dengan onError handler (solusi Next.js 16 Server Component) |
-| **FontStyle** | `src/components/font-style.tsx` | Inject CSS variables font dari database |
-| **ColorTheme** | `src/components/color-theme.tsx` | Inject CSS variables warna dari database |
-| **Breadcrumb** | `src/components/breadcrumb.tsx` | Breadcrumb navigasi |
+| Fitur | Status |
+|-------|--------|
+| Autentikasi (NextAuth Credentials) | ✅ |
+| Proteksi rute admin (middleware) | ✅ |
+| Responsive design (mobile/desktop) | ✅ |
+| Rich text editor (ContentEditor) | ✅ |
+| Upload gambar via URL | ✅ |
+| Database MySQL | ✅ |
+| Seed data awal | ✅ |
 
 ---
 
-## 🎨 Fitur Kustomisasi
+## 🔌 API & Server Actions
 
-### Warna
-- **Primary Color**: Bisa diubah dari Pengaturan > Tampilan & Warna
-- **11 Preset Warna**: Biru, Hijau, Merah, Ungu, Orange, Teal, Pink, Cyan, Abu-abu, Emerald, Indigo
-- **Color Picker Kustom**: Warna bebas
-- **Live Preview**: Pratinjau langsung di form pengaturan
+Semua operasi CRUD menggunakan **Next.js Server Actions** (`"use server"`) yang terpusat di `src/lib/actions.ts`:
 
-### Font & Tipografi
-- **Font Judul (Heading)**: 6 pilihan (Inter, Plus Jakarta Sans, Poppins, Roboto, Merriweather, Lora)
-- **Font Body**: 6 pilihan yang sama
-- **Ukuran Font Dasar**: 14px - 18px
-- **Ketebalan Heading**: 600 - 900
-- **Live Preview**: Pratinjau font di form pengaturan
-
-### Banner
-- **Upload banner** untuk halaman utama
-- **Brightness control** (0-100%) untuk overlay gelap
-- **✅ Constrained width** — banner selebar area konten header (max-w-7xl, terpusat)
-- **✅ Tinggi dikurangi** — padding hero content diperkecil
-
-### 3 Poin Unggulan
-- **Judul & Deskripsi** masing-masing poin bisa diedit dari Pengaturan
-- Default: Pendidikan Berkualitas, Pengembangan Karakter, Prestasi & Inovasi
-
-### ✅ Jam Operasional
-- Bisa diedit dari **Pengaturan > Informasi Umum > Kontak > Jam Operasional**
-- Tampil di halaman Kontak (fallback: "Senin - Jumat: 07:00 - 16:00 WIB")
-
-### ✅ URL PPDB / Daftar Sekarang
-- Tombol "Daftar Sekarang" URL bisa diubah dari **Pengaturan > Informasi Umum > Tombol Daftar Sekarang**
-- Berlaku di HeroNav (desktop & mobile) dan CTA section
-
-### ✅ Testimoni Alumni
-- **Admin panel**: CRUD dengan foto, nama, tahun lulus, testimoni
-- **Halaman utama**: Section "Kata Alumni" (di bawah Galeri) — menampilkan foto + nama + testimoni + bintang
-
-### ✅ Keamanan Form
-- **Google reCAPTCHA v2** di halaman **Login** (cek brute-force bot)
-- **Google reCAPTCHA v2** di form **Kontak** (cegah spam pesan)
-- Verifikasi token server-side di `src/lib/recaptcha.ts`
-
-### ✅ Google Maps
-- Embedded map lokasi **Yayasan Keluarga Besar Annajah** di halaman Kontak
-- Tombol "Buka di Google Maps" (link ke Google Maps)
-
-### Header (HeroNav)
-- **Seragam** di semua halaman publik
-- **Logo + Nama + Slogan** — tata letak rapi
-- **Menu statis**: Beranda, Profil, Berita, Galeri, Kontak
-- **✅ Tombol CTA**: Daftar Sekarang (link ke URL PPDB dari database)
-- **Mobile responsive**: Fullscreen mobile menu
-
-### Footer
-- **3 Kolom**: Ringkasan SMA Annajah, Navigasi (dari Menu Builder), Kontak (dari database)
-- **Navigasi dinamis**: Mengambil menu items dari Menu Builder — jika ada halaman baru ditambahkan, otomatis muncul
-- **Fallback**: Jika belum ada menu, tampilkan link Profil, Berita, Galeri, Kontak
-- **Social Media Icons**: Facebook, Instagram, YouTube
-- **Contact Info**: Alamat, Telepon (link tel:), Email (link mailto:), Website
+| Modul | Actions |
+|-------|---------|
+| **Auth** | `loginAction` |
+| **Posts** | `getPosts`, `getPostBySlug`, `createPost`, `updatePost`, `deletePost` |
+| **Categories** | `getCategories`, `createCategory`, `updateCategory`, `deleteCategory` |
+| **Pages** | `getPages`, `getPageBySlug`, `createPage`, `updatePage`, `deletePage` |
+| **Menus** | `getMenus`, `getMenuByLocation`, `createMenu`, `createMenuItem`, `deleteMenuItem`, `deleteMenu` |
+| **Albums** | `getAlbums`, `getAlbumBySlug`, `createAlbum`, `updateAlbum`, `deleteAlbum` |
+| **Gallery** | `createGalleryItem`, `deleteGalleryItem` |
+| **Testimonials** | `getTestimonials`, `getActiveTestimonials`, `createTestimonial`, `updateTestimonial`, `deleteTestimonial` |
+| **Contacts** | `submitContact`, `getContacts`, `markContactRead`, `deleteContact` |
+| **Settings** | `getSetting`, `setSetting`, `getSiteProfile`, `updateSiteProfile` |
+| **Users** | `getUsers`, `createUser`, `toggleUserActive`, `deleteUser` |
+| **Roles** | `getRoles`, `createRole`, `deleteRole` |
 
 ---
 
-## 📝 Catatan Penting
+## 🎨 Tema & Styling
 
-### Database
-- Menggunakan **MySQL 8.0.30** di `localhost:3306`
-- **Nama database:** `webannajah`
-- **User:** `root` (tanpa password)
-- Untuk **production**, ganti user & password atau gunakan PostgreSQL
-- Data lama dari SQLite sudah dimigrasikan ke MySQL
-- Jangan lupa tambahkan `.env` ke `.gitignore`
+### Warna DXIC
+- **Merah DXIC**: `#DC2626` (primary)
+- **Merah Gelap**: `#B91C1C`
+- **Hitam**: `#1F2937` (secondary)
+- **Abu-abu**: Variasi `#F9FAFB` s.d. `#111827`
 
-### Environment Variables (`.env`)
+### CSS Classes Kustom
+| Class | Fungsi |
+|-------|--------|
+| `.dxic-gradient` | Gradien merah→merah gelap→hitam |
+| `.dxic-gradient-red` | Gradien merah solid |
+| `.dxic-gradient-dark` | Gradien hitam solid |
+| `.text-shadow` / `.text-shadow-lg` | Shadow untuk teks di atas gambar |
+| `.editor-content` | Styling untuk konten HTML (headings, lists, blockquote, dll) |
+
+---
+
+## 💻 Environment Variables
+
+File `.env`:
+
 ```env
-# Database (MySQL)
-DATABASE_URL="mysql://root@localhost:3306/webannajah"
-
-# Google reCAPTCHA v2
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lf...
-RECAPTCHA_SECRET=6Lf...
-
-# NextAuth
-NEXTAUTH_SECRET=your-secret-here
-NEXTAUTH_URL=http://localhost:3000
+DATABASE_URL="mysql://root@localhost:3306/xeniaclub"
 ```
 
-### MySQL Server
-- MySQL Server 8.4.9 terinstall di `C:\Program Files\MySQL\MySQL Server 8.4\`
-- **Service:** `MySQL84` (register sebagai Windows service)
-- **Data directory:** `D:\Web Annajah\mysql-data\`
-- **Client:** `"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql" -u root`
-
-### Keamanan
-- Ganti `NEXTAUTH_SECRET` di `.env` untuk production
-- Ganti password admin default (`admin123`) segera
-- Route `/admin/*` diproteksi oleh `middleware.ts`
-- ✅ Google reCAPTCHA v2 melindungi login dan form kontak dari spam
-
-### Upload File
-- File gambar diupload ke `/public/uploads/`
-- Melalui endpoint API `/api/upload`
-- Format didukung: JPG, PNG, WebP, GIF, SVG
-- Maksimal ukuran: 5MB
-
-### Next.js 16 Notes
-- **Server Components** tidak bisa punya event handler (onClick, onError, dll)
-- Gunakan **Client Component** terpisah untuk interaktivitas
-- **Dynamic route `[slug]`** — explicit route (profil, berita, dll) prioritas di atas slug dinamis
-- **Params harus `Promise`**: `params: Promise<{ slug: string }>` + `await params` (Next.js 16)
+> Untuk production, tambahkan:
+> - `NEXTAUTH_SECRET` — Generate dengan `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+> - `NEXTAUTH_URL` — URL domain production
+> - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` + `RECAPTCHA_SECRET` — Google reCAPTCHA (opsional)
 
 ---
 
-## 🔜 Rencana Pengembangan
+## 📝 Catatan Pengembangan
 
-- [ ] Image optimization dengan `next/image`
+### Database
+- MySQL berjalan di `localhost:3306`
+- Service: MySQL84 (dapat di-start/stop via `net start MySQL84` / `net stop MySQL84`)
+- Data directory: `C:\ProgramData\MySQL\MySQL Server 8.4\data`
+- Untuk reset database: `npx prisma migrate reset --force`
+
+### Prisma
+- Menggunakan Prisma v6 (bukan v7) karena v7 membutuhkan driver adapter yang belum tersedia untuk MySQL
+- Konfigurasi ada di `prisma.config.ts` (untuk CLI) dan `schema.prisma` (untuk runtime)
+- Migration: `prisma/migrations/20260621084739_init/`
+
+### Catatan Migrasi (SQLite → MySQL)
+Project ini sebelumnya menggunakan SQLite dan telah dimigrasi ke MySQL. Perubahan utama:
+- Schema: `provider = "sqlite"` → `"mysql"` + `@db.Text` / `@db.VarChar()` annotations
+- `src/lib/prisma.ts`: Hapus `@prisma/adapter-better-sqlite3`
+- `prisma/seed.ts`: Hapus `PrismaBetterSqlite3` adapter
+- `.env`: `file:./prisma/dev.db` → `mysql://root@localhost:3306/xeniaclub`
+
+---
+
+## 🔜 Rencana Pengembangan Selanjutnya
+
+- [ ] Upload file/gambar langsung (bukan hanya URL)
+- [ ] Image optimization dengan Next.js Image
 - [ ] Pagination untuk postingan dan galeri
-- [ ] Role-based access control per halaman admin
-- [ ] Mode gelap (dark mode)
-- [ ] Media library / file manager
-- [ ] Statistik & analytics dashboard
-- [ ] Multi-language (i18n)
-- [ ] Backup & restore database
-- [ ] Deployment ke production (Vercel / hosting sendiri)
+- [ ] Dark mode
+- [ ] Google reCAPTCHA untuk form kontak & login
+- [ ] SEO optimization (meta tags, sitemap)
+- [ ] Backup database otomatis (cron job)
+- [ ] Production deployment ke hosting (pastikan MySQL service berjalan)
 
 ---
 
-## 📊 Migrasi Database (Riwayat)
-
-| No | Nama Migrasi | Perubahan |
-|----|-------------|-----------|
-| 1 | `init_mysql` | ✅ Migrasi dari SQLite → MySQL. Inisialisasi semua tabel (16 tabel) |
-| 2 | `fix_text_columns` | ✅ Perbaikan kolom VARCHAR menjadi TEXT untuk menampung konten HTML panjang (Post.content, Page.content, Setting.value, SiteProfile.*, Contact.message, Alumni.testimonial) |
-
----
-
-_Dibuat dengan ❤️ untuk SMA Annajah · Last updated: June 2026_
+> **Terakhir diupdate:** 21 Juni 2026
+> **Project:** DXIC — Xeniaclub Website & CMS
+> **Dibuat dengan:** Next.js 16 · TypeScript · Tailwind CSS v4 · Prisma 6 · MySQL 8.4 · NextAuth v5

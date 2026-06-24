@@ -1,15 +1,15 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { PageManager } from "./page-manager";
+import { prisma } from "@/lib/prisma"
+import { PageManager } from "./page-manager"
 
-export default async function PagesPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
+export default async function AdminPagesPage() {
   const pages = await prisma.page.findMany({
-    orderBy: { order: "asc" },
-  });
+    orderBy: { createdAt: "desc" },
+  })
 
-  return <PageManager pages={pages} />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Halaman Statis</h1>
+      <PageManager pages={pages} />
+    </div>
+  )
 }

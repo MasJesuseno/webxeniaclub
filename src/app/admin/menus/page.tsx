@@ -1,59 +1,35 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { MenuManager } from "./menu-manager";
+import { prisma } from "@/lib/prisma"
+import { MenuManager } from "./menu-manager"
 
-export type MenuItemWithChildren = {
-  id: number;
-  label: string;
-  url: string | null;
-  pageId: number | null;
-  icon: string | null;
-  target: string;
-  order: number;
-  isActive: boolean;
-  parentId: number | null;
-  menuId: number;
-  createdAt: Date;
-  updatedAt: Date;
-  page: { id: number; title: string; slug: string } | null;
-  children: MenuItemWithChildren[];
-};
-
-export type MenuWithItems = {
-  id: number;
-  name: string;
-  location: string;
-  createdAt: Date;
-  updatedAt: Date;
-  items: MenuItemWithChildren[];
-};
-
-export default async function MenusPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
-  const rawMenus = await prisma.menu.findMany({
+export default async function AdminMenusPage() {
+  const menus = await prisma.menu.findMany({
     include: {
       items: {
-        include: {
-          children: { include: { page: true } },
-          page: true,
-        },
-        orderBy: { order: "asc" },
         where: { parentId: null },
+        orderBy: { order: "asc" },
+        include: {
+          children: {
+            orderBy: { order: "asc" },
+            include: {
+              page: { select: { title: true, slug: true } },
+              children: { include: { page: { select: { title: true, slug: true } } } },
+            },
+          },
+          page: { select: { title: true, slug: true } },
+        },
       },
     },
-    orderBy: { name: "asc" },
-  });
-
-  const menus: MenuWithItems[] = JSON.parse(JSON.stringify(rawMenus));
+  })
 
   const pages = await prisma.page.findMany({
     where: { status: "published" },
     orderBy: { title: "asc" },
-    select: { id: true, title: true, slug: true },
-  });
+  })
 
-  return <MenuManager menus={menus} pages={pages} />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Menu Navigasi</h1>
+      <MenuManager menus={menus} pages={pages} />
+    </div>
+  )
 }

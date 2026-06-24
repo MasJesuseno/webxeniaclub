@@ -1,16 +1,16 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { AlbumManager } from "./album-manager";
+import { prisma } from "@/lib/prisma"
+import { AlbumManager } from "./album-manager"
 
-export default async function AlbumsPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
+export default async function AdminAlbumsPage() {
   const albums = await prisma.album.findMany({
+    orderBy: { createdAt: "desc" },
     include: { _count: { select: { items: true } } },
-    orderBy: { title: "asc" },
-  });
+  })
 
-  return <AlbumManager albums={albums} />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Album Galeri</h1>
+      <AlbumManager albums={albums} />
+    </div>
+  )
 }

@@ -1,20 +1,20 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { GalleryManager } from "./gallery-manager";
+import { prisma } from "@/lib/prisma"
+import { GalleryManager } from "./gallery-manager"
 
-export default async function GalleryPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
+export default async function AdminGalleryPage() {
   const items = await prisma.galleryItem.findMany({
-    include: { album: true },
     orderBy: { createdAt: "desc" },
-  });
+    include: { album: { select: { title: true, slug: true } } },
+  })
 
   const albums = await prisma.album.findMany({
     orderBy: { title: "asc" },
-  });
+  })
 
-  return <GalleryManager items={items} albums={albums} />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Galeri Foto</h1>
+      <GalleryManager items={items} albums={albums} />
+    </div>
+  )
 }

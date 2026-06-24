@@ -1,283 +1,264 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("Seeding database...")
 
   // Create roles
-  const adminRole = await prisma.role.upsert({
-    where: { name: "super_admin" },
+  const superAdminRole = await prisma.role.upsert({
+    where: { name: "super-admin" },
     update: {},
     create: {
-      name: "super_admin",
+      name: "super-admin",
       displayName: "Super Admin",
-      description: "Akses penuh ke seluruh sistem",
       isSystem: true,
     },
-  });
+  })
 
-  const editorRole = await prisma.role.upsert({
+  await prisma.role.upsert({
     where: { name: "editor" },
     update: {},
     create: {
       name: "editor",
       displayName: "Editor",
-      description: "Dapat mengelola konten (postingan, halaman, galeri)",
       isSystem: true,
     },
-  });
-
-  const authorRole = await prisma.role.upsert({
-    where: { name: "author" },
-    update: {},
-    create: {
-      name: "author",
-      displayName: "Penulis",
-      description: "Dapat menulis dan mengelola postingan sendiri",
-      isSystem: true,
-    },
-  });
-
-  console.log("✅ Roles created");
+  })
 
   // Create admin user
-  const adminPassword = await bcrypt.hash("admin123", 12);
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@smaannajah.sch.id" },
+  const hashedPassword = await bcrypt.hash("admin123", 12)
+  const adminUser = await prisma.user.upsert({
+    where: { email: "admin@xeniaclub.or.id" },
     update: {},
     create: {
-      name: "Admin SMA Annajah",
-      email: "admin@smaannajah.sch.id",
-      password: adminPassword,
+      name: "Admin DXIC",
+      username: "admin",
+      email: "admin@xeniaclub.or.id",
+      password: hashedPassword,
       isActive: true,
     },
-  });
+  })
 
-  // Assign roles to admin
+  // Assign role to admin
   await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: admin.id, roleId: adminRole.id } },
+    where: { userId_roleId: { userId: adminUser.id, roleId: superAdminRole.id } },
     update: {},
-    create: { userId: admin.id, roleId: adminRole.id },
-  });
+    create: {
+      userId: adminUser.id,
+      roleId: superAdminRole.id,
+    },
+  })
 
-  await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: admin.id, roleId: editorRole.id } },
-    update: {},
-    create: { userId: admin.id, roleId: editorRole.id },
-  });
-
-  console.log("✅ Admin user created (email: admin@smaannajah.sch.id, password: admin123)");
+  // Create site profile
+  const profile = await prisma.siteProfile.findFirst()
+  if (!profile) {
+    await prisma.siteProfile.create({
+      data: {
+        clubName: "Daihatsu Xenia Indonesia Club",
+        shortName: "DXIC",
+        slogan: "Xenia Menyatukan Kita",
+        description: "Komunitas pemilik mobil Daihatsu Xenia seluruh Indonesia. Wadah silaturahmi, berbagi pengalaman, dan informasi seputar Daihatsu Xenia.",
+        vision: "Menjadi komunitas Daihatsu Xenia terbesar dan terbaik di Indonesia yang solid, informatif, dan bermanfaat bagi seluruh anggota.",
+        mission: "Mempererat silaturahmi antar sesama pemilik Xenia\nBerbagi informasi dan tips perawatan Xenia\nMengadakan kegiatan sosial dan kopdar rutin\nMenjadi wadah informasi terpercaya seputar Xenia",
+        memberCount: 500,
+        cityCount: 30,
+        establishedYear: "2010",
+        primaryColor: "#DC2626",
+        instagramUrl: "https://instagram.com/xeniaclub",
+        youtubeUrl: "https://youtube.com/@xeniaclub",
+        facebookUrl: "https://facebook.com/xeniaclub",
+      },
+    })
+  }
 
   // Create categories
-  const categories = [
-    { name: "Akademik", color: "#3B82F6", description: "Informasi akademik sekolah" },
-    { name: "Kegiatan", color: "#10B981", description: "Kegiatan dan event sekolah" },
-    { name: "Prestasi", color: "#F59E0B", description: "Prestasi siswa dan sekolah" },
-    { name: "Pengumuman", color: "#EF4444", description: "Pengumuman resmi sekolah" },
-    { name: "Olahraga", color: "#8B5CF6", description: "Kegiatan olahraga" },
-    { name: "Seni & Budaya", color: "#EC4899", description: "Kegiatan seni dan budaya" },
-  ];
+  const kegiatanCat = await prisma.category.upsert({
+    where: { slug: "kegiatan" },
+    update: {},
+    create: { name: "Kegiatan", slug: "kegiatan", color: "#DC2626" },
+  })
 
-  for (const cat of categories) {
-    const { name, color, description } = cat;
-    await prisma.category.upsert({
-      where: { name },
-      update: {},
-      create: {
-        name,
-        slug: name.toLowerCase().replace(/[&\s]+/g, "-"),
-        color,
-        description,
-      },
-    });
-  }
+  await prisma.category.upsert({
+    where: { slug: "kopdar" },
+    update: {},
+    create: { name: "Kopdar", slug: "kopdar", color: "#2563EB" },
+  })
 
-  console.log("✅ Categories created");
+  await prisma.category.upsert({
+    where: { slug: "info" },
+    update: {},
+    create: { name: "Info", slug: "info", color: "#059669" },
+  })
 
-  // Create tags
-  const tags = ["Prestasi", "Lomba", "Olimpiade", "Ekstrakurikuler", "OSIS", "UKS", "Pramuka"];
-  for (const name of tags) {
-    await prisma.tag.upsert({
-      where: { name },
-      update: {},
-      create: { name, slug: name.toLowerCase() },
-    });
-  }
-
-  console.log("✅ Tags created");
+  await prisma.category.upsert({
+    where: { slug: "tips" },
+    update: {},
+    create: { name: "Tips & Trik", slug: "tips", color: "#D97706" },
+  })
 
   // Create sample posts
-  const samplePosts = [
+  const tipsCategory = await prisma.category.findUnique({ where: { slug: "tips" } })
+  const posts = [
     {
-      title: "Selamat Datang Tahun Ajaran Baru 2024/2025",
-      slug: "selamat-datang-tahun-ajaran-baru-2024-2025",
-      content: `<h2>Selamat Datang Siswa Baru!</h2>
-<p>SMA Annajah dengan bangga menyambut seluruh siswa baru tahun ajaran 2024/2025. Kami berharap kalian dapat mengikuti seluruh rangkaian kegiatan belajar mengajar dengan baik.</p>
-<p>Tahun ajaran baru ini membawa semangat baru untuk terus berprestasi dan mengembangkan potensi diri. Mari kita jadikan tahun ajaran ini sebagai momentum untuk meraih prestasi terbaik.</p>
-<h3>Informasi Penting</h3>
-<ul>
-<li>Kegiatan MPLS akan dilaksanakan pada minggu pertama</li>
-<li>Seragam sekolah sudah tersedia di koperasi sekolah</li>
-<li>Buku pelajaran dapat diambil di perpustakaan</li>
-</ul>`,
-      excerpt: "SMA Annajah menyambut tahun ajaran baru 2024/2025 dengan penuh semangat. Mari raih prestasi bersama!",
-      status: "published",
-      featured: true,
-      categoryName: "Pengumuman",
-      tags: ["OSIS", "Ekstrakurikuler"],
+      title: "Kopdar Akbar DXIC 2025 Sukses Digelar",
+      content: "<p>Acara Kopdar Akbar DXIC 2025 yang diselenggarakan di Bandung pada akhir pekan lalu berlangsung meriah. Lebih dari 200 anggota dari berbagai kota hadir dalam acara ini.</p><p>Acara dimulai dengan konvoi keliling kota Bandung, dilanjutkan dengan gathering di sebuah rest area. Berbagai kegiatan seru seperti games, doorprize, dan sesi foto bersama mewarnai acara ini.</p>",
+      excerpt: "Acara Kopdar Akbar DXIC 2025 di Bandung berlangsung meriah dengan dihadiri lebih dari 200 anggota dari berbagai kota.",
+      slug: "kopdar-akbar-dxic-2025-sukses-digelar",
+      categoryId: kegiatanCat.id,
     },
     {
-      title: "Siswa SMA Annajah Raih Medali Emas Olimpiade Sains Nasional",
-      slug: "siswa-raih-medali-emas-olimpiade-sains-nasional",
-      content: `<h2>Prestasi Gemilang!</h2>
-<p>Selamat kepada siswa SMA Annajah yang berhasil meraih medali emas dalam Olimpiade Sains Nasional tingkat provinsi. Prestasi ini membuktikan kualitas pendidikan di SMA Annajah.</p>
-<p>Keberhasilan ini tidak terlepas dari kerja keras siswa dan bimbingan para guru yang telah mendampingi selama persiapan.</p>`,
-      excerpt: "Prestasi membanggakan diraih oleh siswa SMA Annajah dalam ajang Olimpiade Sains Nasional.",
-      status: "published",
-      featured: true,
-      categoryName: "Prestasi",
-      tags: ["Prestasi", "Lomba", "Olimpiade"],
+      title: "Tips Perawatan Daihatsu Xenia agar Tetap Prima",
+      content: "<p>Merawat Daihatsu Xenia dengan baik akan membuat mobil kesayangan Anda tetap prima dan nyaman dikendarai. Berikut beberapa tips perawatan yang bisa Anda lakukan:</p><h2>1. Rutin Ganti Oli</h2><p>Ganti oli mesin setiap 5.000 km atau 3 bulan sekali untuk menjaga performa mesin tetap optimal.</p><h2>2. Periksa Tekanan Ban</h2><p>Pastikan tekanan ban selalu sesuai standar untuk kenyamanan berkendara dan efisiensi bahan bakar.</p>",
+      excerpt: "Tips lengkap merawat Daihatsu Xenia agar tetap prima dan nyaman dikendarai sehari-hari.",
+      slug: "tips-perawatan-daihatsu-xenia-agar-tetap-prima",
+      categoryId: tipsCategory?.id || "",
     },
     {
-      title: "Kegiatan Bakti Sosial SMA Annajah",
-      slug: "kegiatan-bakti-sosial-sma-annajah",
-      content: `<h2>Bakti Sosial</h2>
-<p>SMA Annajah mengadakan kegiatan bakti sosial ke panti asuhan di sekitar wilayah sekolah. Kegiatan ini merupakan bagian dari program pengembangan karakter siswa.</p>
-<p>Kegiatan bakti sosial ini diikuti oleh seluruh siswa dan guru dengan penuh antusias. Semoga kegiatan ini dapat terus berlanjut dan memberikan manfaat bagi sesama.</p>`,
-      excerpt: "SMA Annajah mengadakan bakti sosial ke panti asuhan sebagai bagian dari pengembangan karakter siswa.",
-      status: "published",
-      featured: false,
-      categoryName: "Kegiatan",
-      tags: ["Ekstrakurikuler", "OSIS"],
+      title: "DXIC Gelar Bakti Sosial di Panti Asuhan",
+      content: "<p>DXIC kembali mengadakan kegiatan bakti sosial dengan mengunjungi panti asuhan di Jakarta. Kegiatan ini merupakan bagian dari program sosial DXIC yang rutin dilaksanakan setiap 3 bulan sekali.</p><p>Dalam kegiatan ini, anggota DXIC memberikan bantuan sembako, alat tulis, dan perlengkapan sekolah.</p>",
+      excerpt: "Kegiatan bakti sosial DXIC di panti asuhan Jakarta sebagai wujud kepedulian terhadap sesama.",
+      slug: "dxic-gelar-bakti-sosial-di-panti-asuhan",
+      categoryId: kegiatanCat.id,
     },
-    {
-      title: "Workshop Karya Ilmiah Remaja",
-      slug: "workshop-karya-ilmiah-remaja",
-      content: `<h2>Workshop KIR</h2>
-<p>SMA Annajah menyelenggarakan workshop Karya Ilmiah Remaja (KIR) bagi siswa-siswi yang tertarik dengan dunia penelitian dan penulisan ilmiah.</p>
-<p>Workshop ini menghadirkan pemateri dari perguruan tinggi ternama yang akan membimbing siswa dalam menyusun karya tulis ilmiah yang berkualitas.</p>`,
-      excerpt: "Workshop KIR bagi siswa yang tertarik dengan penelitian dan penulisan ilmiah.",
-      status: "published",
-      featured: false,
-      categoryName: "Akademik",
-      tags: ["Prestasi", "Lomba"],
-    },
-  ];
+  ]
 
-  for (const postData of samplePosts) {
-    const category = await prisma.category.findUnique({
-      where: { name: postData.categoryName },
-    });
-
-    const post = await prisma.post.upsert({
-      where: { slug: postData.slug },
+  for (const post of posts) {
+    await prisma.post.upsert({
+      where: { slug: post.slug },
       update: {},
       create: {
-        title: postData.title,
-        slug: postData.slug,
-        content: postData.content,
-        excerpt: postData.excerpt,
-        status: postData.status,
-        featured: postData.featured,
-        categoryId: category?.id || null,
-        authorId: admin.id,
+        ...post,
+        authorId: adminUser.id,
+        status: "published",
+        featured: true,
         publishedAt: new Date(),
+        image: null,
       },
-    });
-
-    // Add tags
-    for (const tagName of postData.tags) {
-      const tag = await prisma.tag.findUnique({ where: { name: tagName } });
-      if (tag) {
-        await prisma.postTag.upsert({
-          where: { postId_tagId: { postId: post.id, tagId: tag.id } },
-          update: {},
-          create: { postId: post.id, tagId: tag.id },
-        });
-      }
-    }
+    })
   }
 
-  console.log("✅ Sample posts created");
-
-  // Create profile
-  await prisma.siteProfile.upsert({
-    where: { id: 1 },
+  // Create sample menus
+  const headerMenu = await prisma.menu.upsert({
+    where: { location: "header" },
     update: {},
-    create: {
-      id: 1,
-      schoolName: "SMA Annajah",
-      shortName: "SMA Annajah",
-      slogan: "Mewujudkan Generasi Berprestasi & Berakhlak Mulia",
-      description: "SMA Annajah adalah sekolah menengah atas yang berkomitmen untuk mencetak generasi unggul, berakhlak mulia, dan berprestasi di era global. Dengan tenaga pengajar profesional dan fasilitas modern, kami siap mendampingi putra-putri Anda meraih masa depan gemilang.",
-      address: "Jl. Pendidikan No. 123, Kecamatan, Kota",
-      phone: "(021) 1234-5678",
-      email: "info@smaannajah.sch.id",
-      website: "https://smaannajah.sch.id",
-      vision: "Menjadi sekolah menengah atas unggulan yang menghasilkan generasi beriman, berilmu, berakhlak mulia, dan berwawasan global pada tahun 2030.",
-      mission: "1. Menyelenggarakan pendidikan berkualitas berbasis iman dan taqwa\n2. Mengembangkan potensi akademik dan non-akademik siswa secara optimal\n3. Membentuk karakter siswa yang berakhlak mulia dan berbudaya\n4. Meningkatkan kompetensi tenaga pendidik dan kependidikan\n5. Menjalin kerjasama dengan berbagai pihak untuk pengembangan sekolah",
-      primaryColor: "#1e40af",
-      about: "SMA Annajah berdiri dengan semangat untuk memberikan kontribusi nyata dalam dunia pendidikan Indonesia. Dengan pengalaman lebih dari 10 tahun, kami telah melahirkan ribuan lulusan yang berprestasi dan sukses di berbagai bidang.",
-      history: "SMA Annajah didirikan pada tahun 2010 dengan tujuan untuk menyediakan pendidikan menengah atas yang berkualitas dan terjangkau bagi masyarakat. Sejak awal berdiri, sekolah ini telah mengalami berbagai perkembangan signifikan baik dari segi infrastruktur maupun kualitas pendidikan.\n\nPada tahun 2015, SMA Annajah berhasil meraih akreditasi A dan sejak saat itu terus berupaya meningkatkan standar pendidikan. Berbagai prestasi telah diraih oleh siswa-siswi SMA Annajah baik di tingkat kota, provinsi, maupun nasional.",
-    },
-  });
+    create: { name: "Header Menu", location: "header" },
+  })
 
-  console.log("✅ Site profile created");
-
-  // Create menus
-  const mainMenu = await prisma.menu.upsert({
-    where: { name: "Menu Utama" },
+  await prisma.menu.upsert({
+    where: { location: "footer" },
     update: {},
-    create: { name: "Menu Utama", location: "main" },
-  });
+    create: { name: "Footer Menu", location: "footer" },
+  })
 
-  // Add menu items individually to avoid duplicate issues
-  const existingItems = await prisma.menuItem.findMany({ where: { menuId: mainMenu.id } });
-  if (existingItems.length === 0) {
-    await prisma.menuItem.createMany({
-      data: [
-        { label: "Tentang Kami", url: "/profil", menuId: mainMenu.id, order: 0 },
-        { label: "Program", url: "/profil#program", menuId: mainMenu.id, order: 1 },
-        { label: "Fasilitas", url: "/fasilitas", menuId: mainMenu.id, order: 2 },
-      ],
-    });
+  // Create menu items
+  const profilPage = await prisma.page.findFirst({ where: { slug: "profil" } })
+  if (!profilPage) {
+    const page = await prisma.page.create({
+      data: {
+        title: "Profil",
+        slug: "profil",
+        content: "<h2>Tentang DXIC</h2><p>DXIC (Daihatsu Xenia Indonesia Club) adalah komunitas pemilik mobil Daihatsu Xenia seluruh Indonesia.</p>",
+        status: "published",
+      },
+    })
+
+    await prisma.menuItem.create({
+      data: {
+        label: "Profil",
+        pageId: page.id,
+        menuId: headerMenu.id,
+        order: 0,
+      },
+    })
   }
 
-  console.log("✅ Menu created");
+  // Create sample testimonials
+  const testimonials = [
+    { name: "Andi Pratama", title: "Anggota DXIC Jakarta", content: "Bergabung dengan DXIC adalah pengalaman yang luar biasa. Banyak teman baru, ilmu baru tentang perawatan Xenia, dan tentunya kopdar yang seru!", order: 0 },
+    { name: "Budi Santoso", title: "Anggota DXIC Bandung", content: "DXIC bukan sekadar komunitas, sudah seperti keluarga kedua. Solidaritas antar anggota sangat kuat. Salam Xenia!", order: 1 },
+    { name: "Citra Dewi", title: "Anggota DXIC Surabaya", content: "Senang sekali bisa bergabung di DXIC. Banyak informasi bermanfaat, dari perawatan mobil hingga rekomendasi bengkel terpercaya.", order: 2 },
+    { name: "Deni Nugroho", title: "Anggota DXIC Yogyakarta", content: "Kopdar pertama saya dengan DXIC sangat berkesan. Semua anggota ramah dan welcome banget. Terima kasih DXIC!", order: 3 },
+  ]
 
-  // Create albums
-  const album1 = await prisma.album.upsert({
-    where: { slug: "kegiatan-sekolah" },
-    update: {},
-    create: {
-      title: "Kegiatan Sekolah",
-      slug: "kegiatan-sekolah",
-      description: "Dokumentasi berbagai kegiatan sekolah",
+  for (const t of testimonials) {
+    await prisma.testimonial.create({ data: { ...t, isActive: true } })
+  }
+
+  // Create sample partners
+  const partners = [
+    {
+      name: "Astra Daihatsu Motor",
+      description: "Produsen resmi mobil Daihatsu di Indonesia, mitra utama DXIC dalam berbagai kegiatan dan event.",
+      website: "https://www.daihatsu.co.id",
+      order: 0,
     },
-  });
-
-  const album2 = await prisma.album.upsert({
-    where: { slug: "prestasi-siswa" },
-    update: {},
-    create: {
-      title: "Prestasi Siswa",
-      slug: "prestasi-siswa",
-      description: "Momen kebahagiaan saat peraih prestasi",
+    {
+      name: "Pertamina",
+      description: "Mitra bahan bakar resmi untuk kegiatan kopdar dan touring DXIC di seluruh Indonesia.",
+      website: "https://www.pertamina.com",
+      order: 1,
     },
-  });
+    {
+      name: "Planet Ban",
+      description: "Mitra resmi layanan ban dan perawatan ban untuk anggota DXIC dengan harga spesial.",
+      website: "https://www.planetban.com",
+      order: 2,
+    },
+    {
+      name: "GardX Indonesia",
+      description: "Mitra perlindungan cat dan coating mobil untuk komunitas DXIC.",
+      website: "https://www.gardx.co.id",
+      order: 3,
+    },
+    {
+      name: "Shell Indonesia",
+      description: "Mitra pelumas dan bahan bakar berkualitas untuk performa Xenia terbaik.",
+      website: "https://www.shell.co.id",
+      order: 4,
+    },
+    {
+      name: "Modifikasi Xenia",
+      description: "Workshop spesialis modifikasi Daihatsu Xenia, partner resmi DXIC dalam urusan aksesoris.",
+      website: "https://instagram.com/modifikasixenia",
+      order: 5,
+    },
+  ]
 
-  console.log("✅ Albums created");
+  for (const partner of partners) {
+    await prisma.partner.create({
+      data: {
+        ...partner,
+        logo: "/uploads/logo-placeholder.svg",
+        isActive: true,
+      },
+    })
+  }
 
-  console.log("🎉 Seeding completed!");
+  // Create settings
+  const settings = [
+    { key: "site_description", value: "DXIC - Daihatsu Xenia Indonesia Club. Komunitas pemilik mobil Daihatsu Xenia seluruh Indonesia." },
+    { key: "site_keywords", value: "DXIC, Xenia Club Indonesia, Daihatsu Xenia, Komunitas Xenia, Mobil Xenia" },
+  ]
+
+  for (const setting of settings) {
+    await prisma.setting.upsert({
+      where: { key: setting.key },
+      update: { value: setting.value },
+      create: setting,
+    })
+  }
+
+  console.log("Database seeding completed!")
+  console.log("Admin login: admin@xeniaclub.or.id / admin123")
 }
 
 main()
   .catch((e) => {
-    console.error(e);
-    process.exit(1);
+    console.error(e)
+    process.exit(1)
   })
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })
