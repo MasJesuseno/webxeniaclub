@@ -50,3 +50,6 @@ prisma/dev.db-journal
 # uploaded files
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Windows reserved names
+nul

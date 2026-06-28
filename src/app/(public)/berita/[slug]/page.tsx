@@ -2,6 +2,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatDate } from "@/lib/utils"
+import { CommentForm } from "@/components/comment-form"
+import { getCommentsByPost } from "@/lib/actions"
 
 export default async function BeritaDetailPage({
   params,
@@ -18,6 +20,8 @@ export default async function BeritaDetailPage({
   })
 
   if (!post) notFound()
+
+  const comments = await getCommentsByPost(post.id)
 
   const relatedPosts = await prisma.post.findMany({
     where: {
@@ -92,6 +96,53 @@ export default async function BeritaDetailPage({
           className="prose prose-lg max-w-none editor-content bg-white p-8 rounded-2xl shadow-sm"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
+
+        {/* Comments Section */}
+        <section className="mt-12">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Komentar ({comments.length})
+            </h3>
+
+            {/* Comments List */}
+            {comments.length > 0 ? (
+              <div className="space-y-4 mb-8">
+                {comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="flex gap-3 p-4 bg-gray-50 rounded-xl"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                      <span className="text-red-600 font-bold text-sm">
+                        {comment.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-gray-900">{comment.name}</span>
+                        <span className="text-xs text-gray-400">{formatDate(comment.createdAt)}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">{comment.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 mb-6">
+                <p className="text-gray-400 text-sm">Belum ada komentar. Jadilah yang pertama!</p>
+              </div>
+            )}
+
+            {/* Comment Form */}
+            <div className="border-t border-gray-100 pt-6">
+              <h4 className="text-base font-semibold text-gray-900 mb-4">Tinggalkan Komentar</h4>
+              <CommentForm postId={post.id} />
+            </div>
+          </div>
+        </section>
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (

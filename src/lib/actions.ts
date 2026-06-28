@@ -634,6 +634,80 @@ export async function deleteContact(id: string) {
   return { success: true }
 }
 
+// ==================== COMMENTS ====================
+
+export async function submitComment(_prevState: any, formData: FormData) {
+  const postId = formData.get("postId") as string
+  const name = formData.get("name") as string
+  const email = formData.get("email") as string
+  const content = formData.get("content") as string
+  const captchaToken = formData.get("captchaToken") as string
+  const captchaAnswer = formData.get("captchaAnswer") as string
+
+  if (!postId || !name || !email || !content) {
+    return { error: "Semua field harus diisi" }
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return { error: "Format email tidak valid" }
+  }
+
+  // Validate captcha
+  if (!captchaToken || !captchaAnswer) {
+    return { error: "Harap isi verifikasi keamanan", captchaError: true }
+  }
+
+  const { validateCaptcha } = await import("@/lib/math-captcha")
+  if (!validateCaptcha(captchaToken, captchaAnswer)) {
+    return { error: "Jawaban captcha salah", captchaError: true }
+  }
+
+  // Check post exists
+  const post = await prisma.post.findUnique({ where: { id: postId } })
+  if (!post) return { error: "Post tidak ditemukan" }
+
+  await prisma.comment.create({
+    data: { postId, name, email, content },
+  })
+
+  revalidatePath("/berita/" + post.slug)
+  return { success: true }
+}
+
+export async function approveComment(commentId: string) {
+  const comment = await prisma.comment.findUnique({ where: { id: commentId }, include: { post: true } })
+  if (!comment) return { error: "Comment not found" }
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: { isApproved: !comment.isApproved },
+  })
+
+  revalidatePath("/admin/comments")
+  revalidatePath("/berita/" + comment.post.slug)
+  return { success: true }
+}
+
+export async function deleteComment(commentId: string) {
+  const comment = await prisma.comment.findUnique({ where: { id: commentId }, include: { post: true } })
+  if (!comment) return { error: "Comment not found" }
+
+  await prisma.comment.delete({ where: { id: commentId } })
+
+  revalidatePath("/admin/comments")
+  revalidatePath("/berita/" + comment.post.slug)
+  return { success: true }
+}
+
+export async function getCommentsByPost(postId: string) {
+  return prisma.comment.findMany({
+    where: { postId, isApproved: true },
+    orderBy: { createdAt: "asc" },
+  })
+}
+
 // ==================== SETTINGS ====================
 
 export async function getSetting(key: string) {
@@ -717,6 +791,7 @@ export async function createUser(formData: FormData) {
   const username = formData.get("username") as string
   const email = formData.get("email") as string
   const password = formData.get("password") as string
+  const roleIds = formData.getAll("roleIds") as string[]
 
   if (!name || !username || !email || !password) return { error: "Semua field harus diisi" }
 
@@ -734,8 +809,50 @@ export async function createUser(formData: FormData) {
       username,
       email,
       password: hashedPassword,
+      roles: roleIds.length > 0
+        ? { create: roleIds.map((roleId) => ({ roleId })) }
+        : undefined,
     },
   })
+
+  revalidatePath("/admin/users")
+  return { success: true }
+}
+
+export async function updateUser(formData: FormData) {
+  const id = formData.get("id") as string
+  const name = formData.get("name") as string
+  const username = formData.get("username") as string
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
+  const roleIds = formData.getAll("roleIds") as string[]
+
+  if (!id || !name || !username || !email) return { error: "Semua field harus diisi" }
+
+  const user = await prisma.user.findUnique({ where: { id } })
+  if (!user) return { error: "User tidak ditemukan" }
+
+  const existingEmail = await prisma.user.findFirst({ where: { email, NOT: { id } } })
+  if (existingEmail) return { error: "Email sudah digunakan" }
+
+  const existingUsername = await prisma.user.findFirst({ where: { username, NOT: { id } } })
+  if (existingUsername) return { error: "Username sudah digunakan" }
+
+  const data: any = { name, username, email }
+
+  if (password) {
+    data.password = await bcrypt.hash(password, 12)
+  }
+
+  // Update roles: delete all existing, then create new
+  await prisma.userRole.deleteMany({ where: { userId: id } })
+  if (roleIds.length > 0) {
+    await prisma.userRole.createMany({
+      data: roleIds.map((roleId) => ({ userId: id, roleId })),
+    })
+  }
+
+  await prisma.user.update({ where: { id }, data })
 
   revalidatePath("/admin/users")
   return { success: true }

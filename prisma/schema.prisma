@@ -54,6 +54,7 @@ model Post {
   author      User      @relation(fields: [authorId], references: [id])
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags        PostTag[]
+  comments    Comment[]
 }
 
 model Category {
@@ -168,6 +169,21 @@ model Contact {
   message   String   @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  postId     String
+  name       String   @db.VarChar(255)
+  email      String   @db.VarChar(255)
+  content    String   @db.Text
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([isApproved])
 }
 
 model Setting {

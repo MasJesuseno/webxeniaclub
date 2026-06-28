@@ -1,0 +1,40 @@
+Nok Siti Maesaroh
+nok@smaannajah.sch.id	
+@NokSejak1981
+Super Admin
+Editor
+Penulis
+Aktif	18 Jun 2026	
+
+
+N
+Nurul Rahmadani
+nurul@smaannajah.sch.id	
+@NurulSejak1981
+Editor
+Penulis
+Aktif	18 Jun 2026	
+
+
+A
+Admin SMA Annajah
+4dminSejak1981@smaannajah.sch.id	
+Super Admin
+@4dminSejak1981
+Editor
+Aktif	18 Jun 2026
+
+
+Restart node.js :  pm2 restart sma-annajah --update-env
+
+.env  di server :
+DATABASE_URL=mysql://root@localhost:3306/webannajah
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6LfjxiQtAAAAAC71pFD-nvPMm7IOPwiyLRsHFjPB
+RECAPTCHA_SECRET=6LfjxiQtAAAAALD20iMrplDB0cTnLYSrZzYJBgjH
+NEXTAUTH_SECRET=nextauth-secret-change-this-in-production
+NEXTAUTH_URL=https://smaannajah.sch.id
+NODE_ENV=production
+
+
+token xeniaclub :
+sudo cloudflared service install eyJhIjoiZmZlNDZhZjg0MDliZWQ0M2FkNDA0Nzk5NWEwYjhjZDUiLCJ0IjoiNDhlYWM3YjUtOThmNi00OWQ1LTljNTEtOTFjZjM0NjI4OWNjIiwicyI6IlpXUTNPVEk0TVdJdE5XSTBPQzAwT0Raa0xUZzNOMll0WWpKa09UaGpOemRpTldSaiJ9

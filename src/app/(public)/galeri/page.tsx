@@ -32,10 +32,12 @@ export default async function GaleriPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Foto Terbaru</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {latestPhotos.map((photo) => (
-                <div
+                <a
                   key={photo.id}
-                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
-                  onClick={() => window.open(photo.image, "_blank")}
+                  href={photo.image}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer block"
                 >
                   <img
                     src={photo.image}
@@ -48,7 +50,7 @@ export default async function GaleriPage() {
                       <p className="text-white text-xs font-medium truncate">{photo.title}</p>
                     </div>
                   )}
-                </div>
+                </a>
               ))}
             </div>
           </section>

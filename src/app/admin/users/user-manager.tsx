@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createUser, toggleUserActive, deleteUser } from "@/lib/actions"
+import { createUser, updateUser, toggleUserActive, deleteUser } from "@/lib/actions"
 
 interface User {
   id: string
@@ -23,6 +23,7 @@ interface Role {
 export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -30,6 +31,15 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
     const res = await createUser(form)
     if (res?.error) alert(res.error)
     setCreateOpen(false)
+    router.refresh()
+  }
+
+  async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const form = new FormData(e.currentTarget)
+    const res = await updateUser(form)
+    if (res?.error) alert(res.error)
+    setEditingUser(null)
     router.refresh()
   }
 
@@ -44,43 +54,134 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
     router.refresh()
   }
 
+  // Shared user form (for both create and edit)
+  function UserForm({ user, onSubmit, onCancel }: {
+    user?: User | null
+    onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+    onCancel: () => void
+  }) {
+    return (
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="font-semibold text-gray-900 mb-4">
+          {user ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+        </h3>
+        <form onSubmit={onSubmit} className="space-y-4">
+          {user && <input type="hidden" name="id" value={user.id} />}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama</label>
+              <input
+                type="text"
+                name="name"
+                required
+                defaultValue={user?.name || ""}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                placeholder="Nama lengkap"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+              <input
+                type="text"
+                name="username"
+                required
+                defaultValue={user?.username || ""}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                placeholder="Username untuk login"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <input
+                type="email"
+                name="email"
+                required
+                defaultValue={user?.email || ""}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                placeholder="email@xeniaclub.or.id"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Password {user && <span className="text-gray-400 font-normal">(kosongkan jika tidak diubah)</span>}
+            </label>
+            <input
+              type="password"
+              name="password"
+              {...(user ? {} : { required: true })}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+              placeholder={user ? "Biarkan kosong jika tidak diubah" : "Minimal 6 karakter"}
+            />
+          </div>
+
+          {/* Role Selection */}
+          {roles.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <div className="flex flex-wrap gap-3">
+                {roles.map((role) => {
+                  const isChecked = user
+                    ? user.roles.some((ur) => ur.role.id === role.id)
+                    : false
+                  return (
+                    <label
+                      key={role.id}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 hover:border-red-200 cursor-pointer transition-all has-[:checked]:bg-red-50 has-[:checked]:border-red-300"
+                    >
+                      <input
+                        type="checkbox"
+                        name="roleIds"
+                        value={role.id}
+                        defaultChecked={isChecked}
+                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      />
+                      <span className="text-sm text-gray-700">{role.displayName}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              className="dxic-gradient text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
+            >
+              {user ? "Simpan Perubahan" : "Simpan Pengguna"}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all"
+            >
+              Batal
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
-      {!createOpen ? (
-        <button onClick={() => setCreateOpen(true)} className="dxic-gradient text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2">
+      {!createOpen && !editingUser ? (
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="dxic-gradient text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           Tambah Pengguna
         </button>
+      ) : editingUser ? (
+        <UserForm user={editingUser} onSubmit={handleUpdate} onCancel={() => setEditingUser(null)} />
       ) : (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">Tambah Pengguna Baru</h3>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama</label>
-                <input type="text" name="name" required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Nama lengkap" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
-                <input type="text" name="username" required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Username untuk login" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-                <input type="email" name="email" required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="email@xeniaclub.or.id" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-              <input type="password" name="password" required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Minimal 6 karakter" />
-            </div>
-            <div className="flex gap-3">
-              <button type="submit" className="dxic-gradient text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg transition-all">Simpan Pengguna</button>
-              <button type="button" onClick={() => setCreateOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">Batal</button>
-            </div>
-          </form>
-        </div>
+        <UserForm onSubmit={handleCreate} onCancel={() => setCreateOpen(false)} />
       )}
 
       {/* Users List */}
@@ -132,6 +233,16 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Edit button */}
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-all"
+                          title="Edit"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         <button
                           onClick={() => handleToggleActive(user.id)}
                           className={`p-2 rounded-lg transition-all ${
