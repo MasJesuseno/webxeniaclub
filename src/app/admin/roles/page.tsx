@@ -3,7 +3,10 @@ import { RoleManager } from "./role-manager"
 
 export default async function AdminRolesPage() {
   const roles = await prisma.role.findMany({
-    include: { _count: { select: { users: true } } },
+    include: {
+      _count: { select: { users: true } },
+      permissions: { select: { permission: true } },
+    },
   })
 
   return (

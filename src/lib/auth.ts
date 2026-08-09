@@ -34,7 +34,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { username },
           include: {
             roles: {
-              include: { role: true },
+              include: {
+                role: {
+                  include: { permissions: { select: { permission: true } } },
+                },
+              },
             },
           },
         })
@@ -44,11 +48,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const isValid = await bcrypt.compare(password, user.password)
         if (!isValid) return null
 
+        const roleNames = user.roles.map((ur) => ur.role.name)
+        const permissions = roleNames.includes("super-admin")
+          ? ["*"]
+          : Array.from(
+              new Set(user.roles.flatMap((ur) => ur.role.permissions.map((p) => p.permission)))
+            )
+
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          roles: user.roles.map((ur) => ur.role.name),
+          roles: roleNames,
+          permissions,
         }
       },
     }),
@@ -57,7 +69,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.roles = (user as any).roles || []
+        token.roles = user.roles || []
+        token.permissions = user.permissions || []
       }
       return token
     },
@@ -65,6 +78,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string
         session.user.roles = token.roles as string[]
+        session.user.permissions = token.permissions as string[]
       }
       return session
     },
@@ -75,4 +89,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  trustHost: true,
 })

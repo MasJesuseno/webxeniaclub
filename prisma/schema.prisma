@@ -8,24 +8,38 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  name      String     @db.VarChar(255)
-  username  String     @unique @db.VarChar(100)
-  email     String     @unique @db.VarChar(255)
-  password  String     @db.VarChar(255)
-  isActive  Boolean    @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  posts     Post[]
-  roles     UserRole[]
+  id          String     @id @default(cuid())
+  name        String     @db.VarChar(255)
+  username    String     @unique @db.VarChar(100)
+  email       String     @unique @db.VarChar(255)
+  password    String     @db.VarChar(255)
+  isActive    Boolean    @default(true)
+  notifyEmail Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  posts       Post[]
+  roles       UserRole[]
+
 }
 
 model Role {
-  id          String     @id @default(cuid())
-  name        String     @unique
+  id          String           @id @default(cuid())
+  name        String           @unique
   displayName String
-  isSystem    Boolean    @default(false)
+  isSystem    Boolean          @default(false)
   users       UserRole[]
+  permissions RolePermission[]
+
+}
+
+model RolePermission {
+  id         String @id @default(cuid())
+  roleId     String
+  permission String @db.VarChar(100)
+  role       Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permission])
+  @@index([roleId])
 }
 
 model UserRole {
@@ -44,7 +58,7 @@ model Post {
   content     String    @db.Text
   excerpt     String?   @db.Text
   image       String?   @db.Text
-  status      String    @default("draft") @db.VarChar(20) // draft, published, archived
+  status      String    @default("draft") @db.VarChar(20)
   featured    Boolean   @default(false)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -55,6 +69,7 @@ model Post {
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags        PostTag[]
   comments    Comment[]
+
 }
 
 model Category {
@@ -63,6 +78,7 @@ model Category {
   slug  String @unique @db.VarChar(100)
   color String @default("#DC2626") @db.VarChar(20)
   posts Post[]
+
 }
 
 model Tag {
@@ -70,6 +86,7 @@ model Tag {
   name  String    @db.VarChar(100)
   slug  String    @unique @db.VarChar(100)
   posts PostTag[]
+
 }
 
 model PostTag {
@@ -82,37 +99,40 @@ model PostTag {
 }
 
 model Page {
-  id        String   @id @default(cuid())
-  title     String   @db.VarChar(255)
-  slug      String   @unique @db.VarChar(255)
-  content   String   @db.Text
-  layout    String   @default("default") @db.VarChar(20) // default, full-width
-  status    String   @default("published") @db.VarChar(20) // draft, published
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String     @id @default(cuid())
+  title     String     @db.VarChar(255)
+  slug      String     @unique @db.VarChar(255)
+  content   String     @db.Text
+  layout    String     @default("default") @db.VarChar(20)
+  status    String     @default("published") @db.VarChar(20)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   menuItems MenuItem[]
+
 }
 
 model Menu {
-  id        String     @id @default(cuid())
-  name      String     @db.VarChar(100)
-  location  String     @unique @db.VarChar(20) // header, footer
-  items     MenuItem[]
+  id       String     @id @default(cuid())
+  name     String     @db.VarChar(100)
+  location String     @unique @db.VarChar(20)
+  items    MenuItem[]
+
 }
 
 model MenuItem {
-  id       String   @id @default(cuid())
-  label    String   @db.VarChar(255)
-  url      String?  @db.Text
+  id       String     @id @default(cuid())
+  label    String     @db.VarChar(255)
+  url      String?    @db.Text
   pageId   String?
   parentId String?
   menuId   String
-  order    Int      @default(0)
-  isActive Boolean  @default(true)
-  page     Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
-  parent   MenuItem? @relation("MenuItemParent", fields: [parentId], references: [id], onDelete: SetNull)
+  order    Int        @default(0)
+  isActive Boolean    @default(true)
+  page     Page?      @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  parent   MenuItem?  @relation("MenuItemParent", fields: [parentId], references: [id], onDelete: SetNull)
   children MenuItem[] @relation("MenuItemParent")
-  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  menu     Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
 }
 
 model Album {
@@ -124,6 +144,7 @@ model Album {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   items       GalleryItem[]
+
 }
 
 model GalleryItem {
@@ -132,32 +153,54 @@ model GalleryItem {
   image       String   @db.Text
   description String?  @db.Text
   albumId     String
-  album       Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  album       Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
 }
 
 model Testimonial {
-  id            String  @id @default(cuid())
-  name          String  @db.VarChar(255)
-  photo         String? @db.Text
-  content       String  @db.Text
-  title         String? @db.VarChar(255) // e.g., "Anggota DXIC", "Pengurus"
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(255)
+  photo         String?  @db.Text
+  content       String   @db.Text
+  title         String?  @db.VarChar(255)
   order         Int      @default(0)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
 }
 
 model Partner {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(255)
+  logo          String   @db.Text
+  description   String?  @db.Text
+  website       String?  @db.Text
+  locationLink  String?  @db.Text
+  benefit       String?  @db.Text
+  region        String?  @db.VarChar(100)
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+}
+
+model BukuMember {
   id          String   @id @default(cuid())
-  name        String   @db.VarChar(255)
-  logo        String   @db.Text
-  description String?  @db.Text
-  website     String?  @db.Text
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
+  memberId    String?  @db.VarChar(50)
+  namaMember  String   @db.VarChar(255)
+  region      String?  @db.VarChar(100)
+  mitra       String   @db.VarChar(255)
+  tanggal     DateTime?
+  jumlahBayar Float?
+  diskon      String?  @db.VarChar(50)
+  keterangan  String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("buku_member")
 }
 
 model Contact {
@@ -169,6 +212,51 @@ model Contact {
   message   String   @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+}
+
+model Barang {
+  id         String            @id @default(cuid())
+  nama       String            @db.VarChar(255)
+  hargaBeli  Float?
+  hargaJual  Float?
+  stok       Int               @default(0)
+  lokasi     String?           @db.VarChar(255)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  transaksis BarangTransaksi[]
+
+  @@map("barang")
+}
+
+model BarangTransaksi {
+  id         String   @id @default(cuid())
+  barangId   String
+  tanggal    DateTime
+  jenis      String   @db.VarChar(10) // "Masuk" | "Keluar"
+  jumlah     Int
+  keterangan String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  barang     Barang   @relation(fields: [barangId], references: [id], onDelete: Cascade)
+
+  @@map("barang_transaksi")
+  @@index([barangId])
+}
+
+model Region {
+  id          String   @id @default(cuid())
+  region      String   @unique @db.VarChar(100)
+  provinsi    String?  @db.VarChar(100)
+  ketuaRegion String?  @db.VarChar(255)
+  emailKetua  String?  @db.VarChar(255)
+  waKetua     String?  @db.VarChar(50)
+  linkWaGrup  String?  @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("region")
 }
 
 model Comment {
@@ -179,10 +267,8 @@ model Comment {
   content    String   @db.Text
   isApproved Boolean  @default(false)
   createdAt  DateTime @default(now())
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@index([postId])
   @@index([isApproved])
 }
 
@@ -190,13 +276,14 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique @db.VarChar(100)
   value String @db.Text
+
 }
 
 model SiteProfile {
-  id              String @id @default(cuid())
-  clubName        String @db.VarChar(255)
-  shortName       String @db.VarChar(50)
-  slogan          String @db.VarChar(255)
+  id              String  @id @default(cuid())
+  clubName        String  @db.VarChar(255)
+  shortName       String  @db.VarChar(50)
+  slogan          String  @db.VarChar(255)
   description     String? @db.Text
   address         String? @db.Text
   phone           String? @db.VarChar(50)
@@ -208,7 +295,7 @@ model SiteProfile {
   about           String? @db.Text
   history         String? @db.Text
   homeBanner      String? @db.Text
-  primaryColor    String @default("#DC2626") @db.VarChar(20)
+  primaryColor    String  @default("#DC2626") @db.VarChar(20)
   instagramUrl    String? @db.Text
   youtubeUrl      String? @db.Text
   facebookUrl     String? @db.Text
@@ -216,4 +303,99 @@ model SiteProfile {
   memberCount     Int?
   cityCount       Int?
   establishedYear String? @db.VarChar(10)
+  cardTemplateFront  String? @db.Text
+  cardTemplateBack   String? @db.Text
+  bankName              String? @db.VarChar(100)
+  bankAccount           String? @db.VarChar(100)
+  bankAccountName       String? @db.VarChar(255)
+  organizationStructure String? @db.Text
+  jingleMp3            String? @db.Text
+  momenSong            String? @db.Text
+
+}
+
+model FinancialReport {
+  id          String   @id @default(cuid())
+  period      String   @db.VarChar(50)
+  description String?  @db.Text
+  file        String   @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+}
+
+model RegistrationPeriod {
+  id            String   @id @default(cuid())
+  period        String   @db.VarChar(100)
+  biaya         Float?
+  tanggalBerlaku DateTime?
+  batasAkhir    DateTime?
+  status        String   @default("Belum") @db.VarChar(20)
+  regisLang     String   @default("Tidak") @db.VarChar(10)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  registrations RegistrationData[]
+
+}
+
+model RegistrationData {
+  id                   String               @id @default(cuid())
+  registrationPeriodId String
+  biaya                Float?
+  memberId             String?              @db.VarChar(50)
+  namaMember           String               @db.VarChar(255)
+  tanggalTagihan       DateTime?
+  tanggalBayar         DateTime?
+  fotoBukti            String?              @db.Text
+  status               String               @default("Belum") @db.VarChar(20)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  registrationPeriod   RegistrationPeriod   @relation(fields: [registrationPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([registrationPeriodId])
+  @@index([memberId])
+}
+
+model ProspectiveMember {
+  id               String    @id @default(cuid())
+  namaLengkap      String    @db.VarChar(255)
+  namaPanggilan    String?   @db.VarChar(100)
+  tempatLahir      String?   @db.VarChar(100)
+  tanggalLahir     DateTime?
+  alamatLengkap    String?   @db.Text
+  kotaKabupaten    String?   @db.VarChar(100)
+  provinsi         String?   @db.VarChar(100)
+  noWa             String    @db.VarChar(20)
+  golonganDarah    String?   @db.VarChar(5)
+  jenisMobil       String    @db.VarChar(20)
+  tipeMobil        String    @db.VarChar(100)
+  tahunProduksi    Int?
+  warna            String?   @db.VarChar(50)
+  noPolisi         String    @db.VarChar(20)
+  email            String    @db.VarChar(255)
+  alasanBergabung  String?   @db.Text
+  ukuranKaos       String?   @db.VarChar(10)
+  foto             String?   @db.Text
+  fotoSim          String?   @db.Text
+  fotoMobilDepan   String?   @db.Text
+  fotoMobilSamping String?   @db.Text
+  fotoBuktiTransfer String?  @db.Text
+  memberId         String?   @unique @db.VarChar(50)
+  status           String    @default("Diajukan") @db.VarChar(20)
+  adminNote        String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  region           String?   @db.VarChar(100)
+  jenisKelamin     String?   @db.VarChar(20)
+  masaBerlaku      DateTime?
+  statusMember     String?   @db.VarChar(20)
+  password         String?   @db.VarChar(255)
+  lastLatitude     Float?
+  lastLongitude    Float?
+  lastLocationAt   DateTime?
+  lastLoginAt      DateTime?
+  lastLocationLabel String?  @db.Text
+  isOnline         Boolean   @default(false)
+
 }

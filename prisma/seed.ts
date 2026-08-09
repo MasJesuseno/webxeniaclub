@@ -6,26 +6,83 @@ const prisma = new PrismaClient()
 async function main() {
   console.log("Seeding database...")
 
-  // Create roles
-  const superAdminRole = await prisma.role.upsert({
-    where: { name: "super-admin" },
-    update: {},
-    create: {
+  // Create roles (default: Super Admin, Editor, Member, Bendahara) + akses menu
+  // ⚠️ CATATAN: bagian ini akan mereset akses menu role default bila dijalankan
+  // di database yang sudah punya kustomisasi role.
+  const roleDefaults: {
+    name: string
+    displayName: string
+    isSystem: boolean
+    permissions: string[]
+  }[] = [
+    {
       name: "super-admin",
       displayName: "Super Admin",
       isSystem: true,
+      permissions: ["*"], // akses semua menu
     },
-  })
-
-  await prisma.role.upsert({
-    where: { name: "editor" },
-    update: {},
-    create: {
+    {
       name: "editor",
       displayName: "Editor",
       isSystem: true,
+      permissions: [
+        "dashboard",
+        "posts",
+        "categories",
+        "pages",
+        "menus",
+        "albums",
+        "gallery",
+        "testimonials",
+        "comments",
+      ],
     },
-  })
+    {
+      name: "member",
+      displayName: "Member",
+      isSystem: false,
+      permissions: ["dashboard"],
+    },
+    {
+      name: "bendahara",
+      displayName: "Bendahara",
+      isSystem: false,
+    permissions: [
+      "dashboard",
+      "financial-reports",
+      "registration-periods",
+      "registration-data",
+      "buku-member",
+      "barang",
+      "barang-masuk-keluar",
+    ],
+  },
+]
+
+  let superAdminRole: { id: string } | null = null
+  for (const cfg of roleDefaults) {
+    const role = await prisma.role.upsert({
+      where: { name: cfg.name },
+      update: {},
+      create: {
+        name: cfg.name,
+        displayName: cfg.displayName,
+        isSystem: cfg.isSystem,
+      },
+    })
+
+    // Sinkronkan akses menu default (idempotent)
+    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } })
+    if (cfg.permissions.length > 0) {
+      await prisma.rolePermission.createMany({
+        data: cfg.permissions.map((permission) => ({ roleId: role.id, permission })),
+      })
+    }
+
+    if (cfg.name === "super-admin") superAdminRole = role
+  }
+
+  if (!superAdminRole) throw new Error("Role super-admin gagal dibuat")
 
   // Create admin user
   const hashedPassword = await bcrypt.hash("admin123", 12)

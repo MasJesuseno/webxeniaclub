@@ -3,6 +3,8 @@ import { Footer } from "@/components/footer"
 import { ColorTheme } from "@/components/color-theme"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const [profile, headerMenu] = await Promise.all([
     prisma.siteProfile.findFirst() as any,

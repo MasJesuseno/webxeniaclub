@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { prisma } from "@/lib/prisma"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -13,28 +12,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-export async function generateMetadata(): Promise<Metadata> {
-  let iconUrl: string | undefined
-
-  try {
-    const profile = await prisma.siteProfile.findFirst()
-    if (profile?.favicon) {
-      iconUrl = profile.favicon
-    } else if (profile?.logo) {
-      iconUrl = profile.logo
-    }
-  } catch {
-    // fallback — biarkan browser menggunakan default
-  }
-
+export function generateMetadata(): Metadata {
   return {
     title: "DXIC - Xenia Club Indonesia",
     description: "Komunitas pemilik mobil Daihatsu Xenia seluruh Indonesia. Xenia Menyatukan Kita.",
-    icons: iconUrl ? { icon: iconUrl, apple: iconUrl } : undefined,
+    icons: [
+      { rel: "icon", url: "/icon-serve" },
+      { rel: "apple-touch-icon", url: "/icon-serve" },
+    ],
   }
 }
-
-export const revalidate = 0
 
 export default function RootLayout({
   children,

@@ -1,0 +1,17 @@
+Evaluasi THK :
+* Digital
+- Ada kendala di host to host  digital dan Sandra 
+- Data kurban bundling yang hanya muncul 1 nama
+- Ada beberapa transaksi kartu kredit yang telat terkonfirmasi
+- Penurunan transaksi di Tokopedia biller dan marketplace
+- 
+
+
+
+Tanggapan :
+# Sekolah sahabat Kurban --> menarik, coba kl ada konsep yang bagus, nanti sekolah istri coba dijajaki, karena tiap tahun ada program kurban dari SD-Mts-SMA.
+
+# 
+Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+
+SumoPod = hosting

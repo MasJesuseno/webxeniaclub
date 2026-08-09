@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createUser, updateUser, toggleUserActive, deleteUser } from "@/lib/actions"
+import * as XLSX from "xlsx"
 
 interface User {
   id: string
@@ -10,6 +11,7 @@ interface User {
   username: string
   email: string
   isActive: boolean
+  notifyEmail: boolean
   createdAt: Date
   roles: { role: { id: string; name: string; displayName: string } }[]
 }
@@ -52,6 +54,31 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
     if (!confirm("Hapus pengguna ini?")) return
     await deleteUser(id)
     router.refresh()
+  }
+
+  // Export seluruh data pengguna ke Excel
+  function handleExport() {
+    const data = users.map((u) => ({
+      Nama: u.name,
+      Username: u.username,
+      Email: u.email,
+      Role: u.roles.map((ur) => ur.role.displayName).join(", "),
+      Status: u.isActive ? "Aktif" : "Nonaktif",
+      "Notifikasi Email": u.notifyEmail ? "Aktif" : "Off",
+      "Tanggal Dibuat": new Date(u.createdAt).toLocaleDateString("id-ID"),
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Pengguna")
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 25 }, { wch: 18 }, { wch: 30 }, { wch: 25 },
+      { wch: 12 }, { wch: 18 }, { wch: 15 },
+    ]
+
+    XLSX.writeFile(wb, `Pengguna_DXIC_${new Date().toISOString().split("T")[0]}.xlsx`)
   }
 
   // Shared user form (for both create and edit)
@@ -146,6 +173,25 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
             </div>
           )}
 
+          {/* Notifikasi Email */}
+          <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200">
+            <label className="flex items-center gap-3 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                name="notifyEmail"
+                value="true"
+                defaultChecked={user?.notifyEmail}
+                className="w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+              />
+              <span className="flex flex-col">
+                <span className="text-sm font-medium text-gray-800">Notifikasi Email</span>
+                <span className="text-xs text-gray-500">
+                  Terima email notifikasi otomatis (bukti transfer ke Bendahara, pendaftaran calon member, dll)
+                </span>
+              </span>
+            </label>
+          </div>
+
           <div className="flex gap-3">
             <button
               type="submit"
@@ -169,15 +215,27 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
   return (
     <div className="space-y-8">
       {!createOpen && !editingUser ? (
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="dxic-gradient text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Tambah Pengguna
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleExport}
+            disabled={users.length === 0}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Excel
+          </button>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="dxic-gradient text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah Pengguna
+          </button>
+        </div>
       ) : editingUser ? (
         <UserForm user={editingUser} onSubmit={handleUpdate} onCancel={() => setEditingUser(null)} />
       ) : (
@@ -196,6 +254,7 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
                   <th className="text-left px-6 py-3 font-semibold text-gray-600 hidden lg:table-cell">Email</th>
                   <th className="text-left px-6 py-3 font-semibold text-gray-600 hidden sm:table-cell">Role</th>
                   <th className="text-left px-6 py-3 font-semibold text-gray-600 hidden sm:table-cell">Status</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-600 hidden md:table-cell">Notifikasi</th>
                   <th className="text-right px-6 py-3 font-semibold text-gray-600">Aksi</th>
                 </tr>
               </thead>
@@ -230,6 +289,18 @@ export function UserManager({ users, roles }: { users: User[]; roles: Role[] }) 
                       }`}>
                         {user.isActive ? "Aktif" : "Nonaktif"}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell">
+                      {user.notifyEmail ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          Aktif
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Off</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">

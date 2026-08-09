@@ -1,7 +1,7 @@
 "use client"
 
 import { signIn } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { MathCaptcha } from "@/components/math-captcha"
 
@@ -10,6 +10,18 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [captchaError, setCaptchaError] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [shortName, setShortName] = useState("DXIC")
+
+  useEffect(() => {
+    fetch("/api/logo")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.logoUrl) setLogoUrl(data.logoUrl)
+        if (data.shortName) setShortName(data.shortName)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -55,9 +67,17 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 dxic-gradient rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">
-            D
-          </div>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={shortName}
+              className="w-20 h-20 object-contain mx-auto mb-4"
+            />
+          ) : (
+            <div className="w-16 h-16 dxic-gradient rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">
+              {shortName.charAt(0)}
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-gray-900">Panel Admin DXIC</h1>
           <p className="text-sm text-gray-500 mt-1">Masuk untuk mengelola website</p>
         </div>

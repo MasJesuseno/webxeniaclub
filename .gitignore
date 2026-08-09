@@ -32,6 +32,9 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+sumopod-config.js
+# xeniaclub-local
+sumopod-*.js
 
 # vercel
 .vercel
@@ -46,6 +49,9 @@ prisma/dev.db-journal
 
 # database backups
 /backups/
+*.sql
+*.tar.gz
+*.zip
 
 # uploaded files
 /public/uploads/*
@@ -53,3 +59,34 @@ prisma/dev.db-journal
 
 # Windows reserved names
 nul
+
+# ── Helper scripts pribadi (berisi kredensial server) — JANGAN di-commit ──
+sumopod-config.js
+/check-*.js
+/check*.js
+/deploy-*.js
+/deploy-sumopod*.js
+/sync-*.js
+/diag-*.js
+/debug-*.js
+/cleanup-*.js
+/fix-*.js
+/verify-*.js
+/install-ssl-sumopod.js
+/check-health.js
+/convert-dump-mysql57.js
+/backup-server-db.js
+/change-password.js
+/clean-icon-files.js
+/fix-dump-case.js
+/install-new-tunnel.js
+/install-tunnel.js
+/remove-tunnel.js
+/scripts/set-server-pw.js
+/scripts/ssh-fix.js
+/scripts/seed-member-passwords.ts
+/scripts/update-pw-all.js
+/scripts/update-status-server.js
+/scripts/update-pw-all.ts
+/scripts/update-regislang.js
+/test-*.js

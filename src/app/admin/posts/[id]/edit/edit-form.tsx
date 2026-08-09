@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { updatePost } from "@/lib/actions"
 import { ContentEditor } from "@/components/content-editor"
@@ -18,6 +18,7 @@ export function EditPostForm({ post, categories }: { post: any; categories: Cate
   const router = useRouter()
   const [content, setContent] = useState(post.content || "")
   const [image, setImage] = useState(post.image || "")
+  const imageRef = useRef<HTMLInputElement>(null)
   const updateWithId = updatePost.bind(null, post.id)
   const [state, formAction, pending] = useActionState(updateWithId, null)
 
@@ -54,8 +55,8 @@ export function EditPostForm({ post, categories }: { post: any; categories: Cate
             />
           </div>
 
-          <ImageUpload value={image} onChange={setImage} label="Gambar Unggulan" hint="Rekomendasi: 1920×1080px (16:9) — agar gambar tidak terpotong dan tampil sempurna di carousel home" />
-          <input type="hidden" name="image" value={image} />
+          <ImageUpload value={image} onChange={(url) => { setImage(url); if (imageRef.current) imageRef.current.value = url }} label="Gambar Unggulan" hint="Rekomendasi: 1920×1080px (16:9) — agar gambar tidak terpotong dan tampil sempurna di carousel home" />
+          <input ref={imageRef} type="hidden" name="image" defaultValue={image} />
         </div>
 
         <div className="space-y-6">

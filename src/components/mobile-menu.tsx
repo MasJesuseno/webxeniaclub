@@ -31,14 +31,20 @@ export function MobileMenu({ open, onClose, clubName, shortName, menuItems }: Mo
   if (!open) return null
 
   const navItems = [
-    { label: "Beranda", href: "/" },
-    ...menuItems.map((item) => ({
-      label: item.label,
-      href: item.url || (item.page ? `/${item.page.slug}` : "#"),
-    })),
-    { label: "Berita", href: "/berita" },
-    { label: "Galeri", href: "/galeri" },
-    { label: "Kontak", href: "/kontak" },
+    { label: "Beranda", href: "/", depth: 0 },
+    ...menuItems.flatMap((item) => {
+      const href = item.url || (item.page ? `/${item.page.slug}` : "#")
+      const children = (item.children || []).map((child) => ({
+        label: child.label,
+        href: child.url || (child.page ? `/${child.page.slug}` : "#"),
+        depth: 1,
+      }))
+      return [{ label: item.label, href, depth: 0 }, ...children]
+    }),
+    { label: "Berita", href: "/berita", depth: 0 },
+    { label: "Galeri", href: "/galeri", depth: 0 },
+    { label: "Kontak", href: "/kontak", depth: 0 },
+    { label: "Login Member", href: "/member/login", depth: 0, isLogin: true },
   ]
 
   return (
@@ -72,15 +78,35 @@ export function MobileMenu({ open, onClose, clubName, shortName, menuItems }: Mo
                   href={item.href}
                   onClick={onClose}
                   className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-red-50 text-red-600"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                    (item as any).isLogin
+                      ? "dxic-gradient text-white text-center mt-2"
+                      : isActive
+                        ? "bg-red-50 text-red-600"
+                        : item.depth === 1
+                          ? "text-gray-600 hover:bg-gray-50 hover:text-red-600 ml-6 border-l-2 border-gray-200 pl-4"
+                          : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
                   }`}
                 >
-                  {item.label}
+                  {(item as any).isLogin ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                      </svg>
+                      Login Member
+                    </span>
+                  ) : (
+                    item.label
+                  )}
                 </Link>
               )
             })}
+            <Link
+              href="/gabung"
+              onClick={onClose}
+              className="block text-center text-xs text-gray-500 hover:text-red-600 transition-colors mt-1.5"
+            >
+              Belum jadi member? Klik sini untuk jadi member
+            </Link>
           </nav>
         </div>
 

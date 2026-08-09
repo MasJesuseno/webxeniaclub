@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createPost } from "@/lib/actions"
 import { ContentEditor } from "@/components/content-editor"
@@ -19,6 +19,7 @@ export function PostForm({ categories, initialData }: { categories: Category[]; 
   const [state, formAction, pending] = useActionState(createPost, null)
   const [content, setContent] = useState(initialData?.content || "")
   const [image, setImage] = useState(initialData?.image || "")
+  const imageRef = useRef<HTMLInputElement>(null)
 
   return (
     <form action={formAction} className="max-w-4xl">
@@ -56,8 +57,8 @@ export function PostForm({ categories, initialData }: { categories: Category[]; 
             />
           </div>
 
-          <ImageUpload value={image} onChange={setImage} label="Gambar Unggulan" hint="Rekomendasi: 1920×1080px (16:9) — agar gambar tidak terpotong dan tampil sempurna di carousel home" />
-          <input type="hidden" name="image" value={image} />
+          <ImageUpload value={image} onChange={(url) => { setImage(url); if (imageRef.current) imageRef.current.value = url }} label="Gambar Unggulan" hint="Rekomendasi: 1920×1080px (16:9) — agar gambar tidak terpotong dan tampil sempurna di carousel home" />
+          <input ref={imageRef} type="hidden" name="image" defaultValue={image} />
         </div>
 
         {/* Sidebar */}

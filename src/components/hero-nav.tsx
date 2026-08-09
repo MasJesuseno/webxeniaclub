@@ -145,6 +145,25 @@ export function HeroNav({ clubName, shortName, logo, primaryColor, menuItems, sl
               >
                 Kontak
               </Link>
+              <div className="ml-2 flex flex-col items-center">
+                <Link
+                  href="/member/login"
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white dxic-gradient hover:shadow-lg transition-all duration-200"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Login Member
+                  </span>
+                </Link>
+                <Link
+                  href="/gabung"
+                  className="mt-1 text-[11px] leading-tight text-gray-500 hover:text-red-600 transition-colors text-center"
+                >
+                  Belum jadi member? Klik sini untuk jadi member
+                </Link>
+              </div>
             </div>
 
             {/* Mobile menu button */}

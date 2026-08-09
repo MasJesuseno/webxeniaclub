@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { AdminSidebar } from "./admin-sidebar"
+import { getUserPermissions, getUserRoleBadges } from "@/lib/permissions"
+import { hasMenuAccess, getFirstAllowedPath } from "@/lib/admin-menu"
+import { RoleBadges } from "@/components/role-badge"
 
 export default async function AdminLayout({
   children,
@@ -8,11 +12,27 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const session = await auth()
-  if (!session?.user) redirect("/login")
+  if (!session?.user?.id) redirect("/login")
+
+  // Pathname diteruskan dari proxy.ts via header (server component tidak
+  // bisa membaca pathname secara langsung).
+  const headersList = await headers()
+  const pathname = headersList.get("x-pathname") || "/admin"
+
+  // Pengecekan izin FRESH ke database per request — perubahan hak akses role
+  // langsung berlaku tanpa harus login ulang.
+  const [permissions, roleBadges] = await Promise.all([
+    getUserPermissions(session.user.id),
+    getUserRoleBadges(session.user.id),
+  ])
+
+  if (!hasMenuAccess(permissions, pathname)) {
+    redirect(getFirstAllowedPath(permissions))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <AdminSidebar user={session.user} />
+      <AdminSidebar user={{ ...session.user, permissions, roleBadges }} />
       <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
@@ -20,8 +40,11 @@ export default async function AdminLayout({
             <h2 className="text-lg font-semibold text-gray-900">Panel Admin DXIC</h2>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500 hidden sm:block">
-              {session.user.name || session.user.email}
+            <span className="hidden sm:flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {session.user.name || session.user.email}
+              </span>
+              <RoleBadges roles={roleBadges} />
             </span>
             <a
               href="/"

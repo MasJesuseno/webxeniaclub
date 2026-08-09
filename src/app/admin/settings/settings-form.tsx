@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { updateSiteProfile } from "@/lib/actions"
 import { ImageUpload } from "@/components/image-upload"
+import { FileUpload } from "@/components/file-upload"
 
 interface Profile {
   id: string
@@ -29,6 +30,14 @@ interface Profile {
   memberCount: number | null
   cityCount: number | null
   establishedYear: string | null
+  cardTemplateFront: string | null
+  cardTemplateBack: string | null
+  bankName: string | null
+  bankAccount: string | null
+  bankAccountName: string | null
+  organizationStructure: string | null
+  jingleMp3: string | null
+  momenSong: string | null
 }
 
 export function SettingsForm({ profile }: { profile: Profile }) {
@@ -38,6 +47,11 @@ export function SettingsForm({ profile }: { profile: Profile }) {
   const [logo, setLogo] = useState(profile.logo || "")
   const [favicon, setFavicon] = useState(profile.favicon || "")
   const [homeBanner, setHomeBanner] = useState(profile.homeBanner || "")
+  const [cardTemplateFront, setCardTemplateFront] = useState(profile.cardTemplateFront || "")
+  const [cardTemplateBack, setCardTemplateBack] = useState(profile.cardTemplateBack || "")
+  const [organizationStructure, setOrganizationStructure] = useState(profile.organizationStructure || "")
+  const [jingleMp3, setJingleMp3] = useState(profile.jingleMp3 || "")
+  const [momenSong, setMomenSong] = useState(profile.momenSong || "")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -209,6 +223,191 @@ export function SettingsForm({ profile }: { profile: Profile }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Twitter / X</label>
               <input type="url" name="twitterUrl" defaultValue={profile.twitterUrl || ""} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="https://twitter.com/xeniaclub" />
+            </div>
+          </div>
+        </section>
+
+        {/* Bank & Rekening Pembayaran */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Bank &amp; Rekening Pembayaran Member
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Informasi rekening untuk pembayaran iuran/iuran member.
+            Data ini akan ditampilkan di halaman tagihan member.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Bank</label>
+              <input
+                type="text"
+                name="bankName"
+                defaultValue={profile.bankName || ""}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                placeholder="Contoh: BCA, Mandiri, BNI"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Rekening</label>
+              <input
+                type="text"
+                name="bankAccount"
+                defaultValue={profile.bankAccount || ""}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                placeholder="Contoh: 1234567890"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Atas Nama</label>
+              <input
+                type="text"
+                name="bankAccountName"
+                defaultValue={profile.bankAccountName || ""}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                placeholder="Contoh: Yayasan Xenia Club Indonesia"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Struktur Organisasi */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Struktur Organisasi
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload gambar struktur organisasi club. Gambar ini akan ditampilkan di halaman Profil.
+          </p>
+          <div>
+            <input type="hidden" name="organizationStructure" value={organizationStructure} />
+            <ImageUpload value={organizationStructure} onChange={setOrganizationStructure} label="Gambar Struktur Organisasi" hint="Rekomendasi: ukuran landscape lebar (min. 1200×800px) dengan latar putih/transparan" />
+          </div>
+        </section>
+
+        {/* Jingle MP3 */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            Jingle MP3
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload file audio jingle/lagu resmi club (format MP3).
+            Audio akan diputar di halaman DXIC Member Area.
+          </p>
+          <div>
+            <input type="hidden" name="jingleMp3" value={jingleMp3} />
+            <FileUpload
+              value={jingleMp3}
+              onChange={setJingleMp3}
+              label="File Jingle MP3"
+              hint="Rekomendasi: file MP3 dengan kualitas tinggi, ukuran maksimal 10MB"
+              accept=".mp3,.mpga,.wav,.ogg,.m4a,.aac"
+            />
+          </div>
+
+          {/* Audio Preview */}
+          {jingleMp3 && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-red-50 rounded-xl border border-purple-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-red-500 flex items-center justify-center animate-pulse">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Preview Audio</p>
+                  <p className="text-xs text-gray-500">Klik play untuk mendengarkan</p>
+                </div>
+              </div>
+              <audio
+                controls
+                src={jingleMp3}
+                className="w-full h-10 rounded-lg"
+                preload="metadata"
+              >
+                Browser tidak mendukung pemutar audio.
+              </audio>
+            </div>
+          )}
+        </section>
+
+        {/* Momen Song */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            Momen Song
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload lagu tema momen spesial club (format MP3).
+            Audio akan diputar di halaman DXIC Member Area, di bawah Jingle.
+          </p>
+          <div>
+            <input type="hidden" name="momenSong" value={momenSong} />
+            <FileUpload
+              value={momenSong}
+              onChange={setMomenSong}
+              label="File Momen Song MP3"
+              hint="Rekomendasi: file MP3 dengan kualitas tinggi, ukuran maksimal 10MB"
+              accept=".mp3,.mpga,.wav,.ogg,.m4a,.aac"
+            />
+          </div>
+
+          {/* Audio Preview */}
+          {momenSong && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center animate-pulse">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Preview Momen Song</p>
+                  <p className="text-xs text-gray-500">Klik play untuk mendengarkan</p>
+                </div>
+              </div>
+              <audio
+                controls
+                src={momenSong}
+                className="w-full h-10 rounded-lg"
+                preload="metadata"
+              >
+                Browser tidak mendukung pemutar audio.
+              </audio>
+            </div>
+          )}
+        </section>
+
+        {/* Kartu Member */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            Kartu Member
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload template kartu member bagian depan dan belakang (format JPG/PNG).
+            Template akan digunakan sebagai latar belakang kartu member yang dicetak.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <input type="hidden" name="cardTemplateFront" value={cardTemplateFront} />
+              <ImageUpload value={cardTemplateFront} onChange={setCardTemplateFront} label="Template Depan" hint="Rekomendasi: 53.98×85.60mm (ukuran kartu kredit), resolusi tinggi" />
+            </div>
+            <div>
+              <input type="hidden" name="cardTemplateBack" value={cardTemplateBack} />
+              <ImageUpload value={cardTemplateBack} onChange={setCardTemplateBack} label="Template Belakang" hint="Rekomendasi: ukuran sama dengan depan. Tidak perlu tulisan, hanya background" />
             </div>
           </div>
         </section>

@@ -19,9 +19,9 @@ const EXCLUDE = new Set([
   'deploy.js',
   'package-lock.json',
   'tsconfig.tsbuildinfo',
-  'xeniaclub.tar.gz',
-  '.env',            // will be created separately
-  'nul',
+  'xeniaclub.tar.gz',    '.env',            // will be created separately
+    '.env.local',
+    'nul',
 ]);
 
 // ─── Helper: recursive file listing ──────────────────────────────────────────
@@ -176,7 +176,7 @@ async function main() {
     const envContent = [
       'DATABASE_URL="mysql://root@localhost:3306/xeniaclub"',
       `NEXTAUTH_SECRET="${secret}"`,
-      'NEXTAUTH_URL="http://192.168.1.53:3000"',
+      'NEXTAUTH_URL="https://xeniaclub.or.id"',
       ''
     ].join('\n');
     // Write .env file line by line via heredoc
@@ -191,14 +191,16 @@ async function main() {
     } catch (e) { console.log(`   ⚠️  Prisma generate: ${e.message.slice(0, 200)}`); }
 
     try {
-      const migrateOutput = await sshExec(conn, `cd ${CONFIG.remoteDir} && npx prisma migrate deploy 2>&1`);
-      console.log(`   Migrations: ${migrateOutput.slice(0, 300)}`);
-    } catch (e) { console.log(`   ⚠️  Migrations: ${e.message.slice(0, 300)}`); }
+      const pushOutput = await sshExec(conn, `cd ${CONFIG.remoteDir} && npx prisma db push 2>&1`);
+      console.log(`   Schema sync: ${pushOutput.slice(0, 200)}`);
+    } catch (e) { console.log(`   ⚠️  Schema sync: ${e.message.slice(0, 200)}`); }
 
-    try {
-      const seedOutput = await sshExec(conn, `cd ${CONFIG.remoteDir} && npx prisma db seed 2>&1`);
-      console.log(`   Seed: ${seedOutput.slice(0, 200)}`);
-    } catch (e) { console.log(`   ⚠️  Seed: ${e.message.slice(0, 200)}`); }
+    // NOTE: Seed dinonaktifkan untuk update production agar tidak menimpa data.
+    // Hanya jalankan seed manual saat first deploy.
+    // try {
+    //   const seedOutput = await sshExec(conn, `cd ${CONFIG.remoteDir} && npx prisma db seed 2>&1`);
+    //   console.log(`   Seed: ${seedOutput.slice(0, 200)}`);
+    // } catch (e) { console.log(`   ⚠️  Seed: ${e.message.slice(0, 200)}`); }
 
     // ── Step 8: Build Next.js ──
     console.log('\n🏗️  Building Next.js app (this may take a while)...');

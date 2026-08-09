@@ -1,0 +1,57 @@
+Minggu ini :
+- Meeting estafed dengan beberapa departemen dan Vendor
+  - SDI, HR, 
+  - OZIP , Wiraarta
+- Updat Kartu kredit di semua tenan langganan kita 
+  - goddady
+  - AWS
+  - Jagoan Hosting
+  - Sendgrid
+  - Rask AI ( saat nanti habis )
+  - Zoom
+  - Tokopedia
+  - Cloudflare
+  - C-Panel ( di hold - angga )
+  
+- Temuan Internal Ausit
+   - CCTV di belakang server belum terpantau --> sudah terpasang CCTV oleh Fandy dan Pri
+   - Akses control dari dalam ruang server belum terpasang, sehingga tidak diketahui berapa lama seseorang berada di ruang server. ( musti pengadaan mesin fingger print didalam )
+
+   - Di semua aplikasi di halaman login harus di berikan keterangan helpdesk jika user mengalami kendala :
+        - Sandra  --> Penambahan Fitur --> Resti
+                  --> Perkaitan dengan akses ---> hendra
+                  --> Bug / error : ---> Imam
+
+        - Desi2  --> Penambahan Fitur --> Resti
+                  --> Perkaitan dengan akses ---> Eha
+                  --> Bug / error : ---> Kanedi
+
+        - Legal  --> Penambahan Fitur --> Resti
+                  --> Perkaitan dengan akses ---> Kanedi
+                  --> Bug / error : ---> Kanedi
+
+        - Benefis --> Penambahan Fitur --> Resti
+                  --> Perkaitan dengan akses ---> Hendra
+                  --> Bug / error : ---> Imam
+
+        - faq --> Penambahan Fitur --> Resti
+                  --> Perkaitan dengan akses ---> kanedi
+                  --> Bug / error : ---> kanedi
+
+        - web pusat dan cabang --> Penambahan Fitur --> angga
+                  --> Perkaitan dengan akses ---> angga
+                  --> Bug / error : ---> angga
+
+        - ats.dompetdhuafa.org --> Penambahan Fitur --> angga
+                  --> Perkaitan dengan akses ---> angga
+                  --> Bug / error : ---> angga
+
+
+Minggu depan :
+- Meeting dengan FA ( GP --> GM + SO , All Tim di CIputat --> impor data bank --- delay di CC)
+- Meeting dengan Data labs ( GM - SO - Support - Devops )
+- Mmeting dengan Epployee ( GM - SO - resti - SDI )
+- Meeting dengan Sangfor  SIngapur - implementasi config SASE ( IT Support)
+- Meeting dengan Wira arta terkait produk manajemen Device ( IT Depsio & Support )
+- Meeting dengan Tatakelola / QMS terkait penurunan Sasaran Strategis dan Indikator Kinerja Utama ( GM dan SO )
+- 
