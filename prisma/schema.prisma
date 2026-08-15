@@ -311,6 +311,9 @@ model SiteProfile {
   organizationStructure String? @db.Text
   jingleMp3            String? @db.Text
   momenSong            String? @db.Text
+  momenSong2           String? @db.Text
+  momenSongCaption     String? @db.VarChar(255)
+  momenSongCaption2    String? @db.VarChar(255)
 
 }
 

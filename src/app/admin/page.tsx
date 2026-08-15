@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import { timeAgo } from "@/lib/utils"
 
 export default async function AdminDashboard() {
   const [
@@ -15,6 +16,10 @@ export default async function AdminDashboard() {
     prospectiveTotalCount,
     prospectiveDiajukanCount,
     prospectiveDiterimaCount,
+    memberLoggedInCount,
+    memberNeverLoggedInCount,
+    memberOnlineCount,
+    recentLogins,
     recentPosts,
     recentContacts,
   ] = await Promise.all([
@@ -30,6 +35,15 @@ export default async function AdminDashboard() {
     prisma.prospectiveMember.count(),
     prisma.prospectiveMember.count({ where: { status: "Diajukan" } }),
     prisma.prospectiveMember.count({ where: { status: "Diterima" } }),
+    prisma.prospectiveMember.count({ where: { lastLoginAt: { not: null } } }),
+    prisma.prospectiveMember.count({ where: { lastLoginAt: null } }),
+    prisma.prospectiveMember.count({ where: { isOnline: true } }),
+    prisma.prospectiveMember.findMany({
+      where: { lastLoginAt: { not: null } },
+      orderBy: { lastLoginAt: "desc" },
+      take: 8,
+      select: { id: true, memberId: true, namaLengkap: true, region: true, lastLoginAt: true, isOnline: true },
+    }),
     prisma.post.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { author: { select: { name: true } } } }),
     prisma.contact.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
   ])
@@ -38,6 +52,9 @@ export default async function AdminDashboard() {
     { label: "Data Member", value: prospectiveTotalCount, icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z", color: "bg-red-500" },
     { label: "Diajukan", value: prospectiveDiajukanCount, icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color: "bg-yellow-500" },
     { label: "Disetujui", value: prospectiveDiterimaCount, icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", color: "bg-green-500" },
+    { label: "Sudah Login", value: memberLoggedInCount, icon: "M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1", color: "bg-blue-500" },
+    { label: "Belum Login", value: memberNeverLoggedInCount, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", color: "bg-gray-400" },
+    { label: "Online Sekarang", value: memberOnlineCount, icon: "M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z", color: "bg-emerald-500" },
     { label: "Total Postingan", value: postCount, icon: "M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z", color: "bg-blue-500" },
     { label: "Dipublikasikan", value: publishedCount, icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", color: "bg-green-500" },
     { label: "Kategori", value: categoryCount, icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z", color: "bg-blue-500" },
@@ -70,6 +87,45 @@ export default async function AdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Recent Member Logins */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">Aktivitas Login Member</h3>
+          <Link href="/admin/prospective-members" className="text-sm text-red-600 hover:text-red-700">Lihat Semua</Link>
+        </div>
+        {recentLogins.length === 0 ? (
+          <p className="px-6 py-4 text-sm text-gray-500">Belum ada member yang pernah login</p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {recentLogins.map((login) => (
+              <Link key={login.id} href="/admin/prospective-members" className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span className={`relative flex w-2.5 h-2.5 shrink-0 ${login.isOnline ? "" : "opacity-40"}`}>
+                    {login.isOnline && (
+                      <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                    )}
+                    <span className={`relative inline-flex w-2.5 h-2.5 rounded-full ${login.isOnline ? "bg-emerald-500" : "bg-gray-400"}`} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{login.namaLengkap}</p>
+                    <p className="text-xs text-gray-500">
+                      <span className="font-mono">{login.memberId || "—"}</span>
+                      {login.region && <span> · {login.region}</span>}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0 ml-4">
+                  <p className="text-sm text-gray-700">{timeAgo(login.lastLoginAt)}</p>
+                  <p className="text-xs text-gray-400">
+                    {login.lastLoginAt ? new Date(login.lastLoginAt).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

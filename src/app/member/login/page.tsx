@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { MemberGPS } from "@/components/member-gps"
 
@@ -11,6 +11,40 @@ interface GPSData {
   label?: string
 }
 
+const REMEMBER_KEY = "member_remembered_credentials"
+const LOGOUT_FLAG_KEY = "member_logged_out"
+
+interface RememberedCredentials {
+  memberId: string
+  password: string
+}
+
+function loadRememberedCredentials(): RememberedCredentials | null {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (typeof data?.memberId === "string" && typeof data?.password === "string") {
+      return data
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function saveRememberedCredentials(creds: RememberedCredentials | null) {
+  try {
+    if (creds) {
+      localStorage.setItem(REMEMBER_KEY, JSON.stringify(creds))
+    } else {
+      localStorage.removeItem(REMEMBER_KEY)
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export default function MemberLoginPage() {
   const router = useRouter()
   const [error, setError] = useState("")
@@ -19,6 +53,10 @@ export default function MemberLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [shortName, setShortName] = useState("DXIC")
+  const [rememberMe, setRememberMe] = useState(false)
+  const [memberId, setMemberId] = useState("")
+  const [password, setPassword] = useState("")
+  const autoLoginAttempted = useRef(false)
 
   useEffect(() => {
     fetch("/api/logo")
@@ -28,7 +66,45 @@ export default function MemberLoginPage() {
         if (data.shortName) setShortName(data.shortName)
       })
       .catch(() => {})
-  }, [])
+
+    ;(async () => {
+      // Muat kredensial tersimpan & isi otomatis form
+      const remembered = loadRememberedCredentials()
+      if (!remembered) return
+      setRememberMe(true)
+      setMemberId(remembered.memberId)
+      setPassword(remembered.password)
+
+      // Login otomatis — kecuali user baru saja logout di tab ini
+      if (autoLoginAttempted.current) return
+      autoLoginAttempted.current = true
+      try {
+        if (sessionStorage.getItem(LOGOUT_FLAG_KEY) === "1") return
+      } catch {
+        // ignore
+      }
+
+      setLoading(true)
+      try {
+        const res = await fetch("/api/member/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ memberId: remembered.memberId, password: remembered.password }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          router.push("/member")
+          router.refresh()
+          return
+        }
+        setError(data.error || "Login gagal")
+      } catch {
+        setError("Terjadi kesalahan saat login otomatis")
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -36,14 +112,14 @@ export default function MemberLoginPage() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const memberId = formData.get("memberId") as string
-    const password = formData.get("password") as string
+    const memberIdValue = formData.get("memberId") as string
+    const passwordValue = formData.get("password") as string
 
     // Login first
     const res = await fetch("/api/member/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId, password }),
+      body: JSON.stringify({ memberId: memberIdValue, password: passwordValue }),
     })
 
     const data = await res.json()
@@ -52,6 +128,13 @@ export default function MemberLoginPage() {
       setError(data.error || "Login gagal")
       setLoading(false)
       return
+    }
+
+    // Simpan / hapus kredensial sesuai opsi "Ingat ID & Password"
+    if (rememberMe) {
+      saveRememberedCredentials({ memberId: memberIdValue, password: passwordValue })
+    } else {
+      saveRememberedCredentials(null)
     }
 
     // Update location after successful login
@@ -106,6 +189,9 @@ export default function MemberLoginPage() {
               id="memberId"
               name="memberId"
               required
+              value={memberId}
+              onChange={(e) => setMemberId(e.target.value)}
+              autoComplete="username"
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm"
               placeholder="Masukkan ID Member"
               autoCapitalize="characters"
@@ -122,6 +208,9 @@ export default function MemberLoginPage() {
                 id="password"
                 name="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm"
                 placeholder="Masukkan password"
               />
@@ -144,6 +233,22 @@ export default function MemberLoginPage() {
               </button>
             </div>
           </div>
+
+          {/* Ingat ID & Password */}
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+            />
+            <span className="text-sm text-gray-700">
+              <span className="font-medium">Ingat ID &amp; Password</span>
+              <span className="block text-xs text-gray-400">
+                Simpan di perangkat ini agar login berikutnya otomatis tanpa mengetik ulang
+              </span>
+            </span>
+          </label>
 
           {/* GPS Location Capture */}
           <div className="border-t border-gray-100 pt-4">

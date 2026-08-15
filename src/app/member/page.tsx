@@ -82,6 +82,11 @@ export default function MemberProfilePage() {
 
   async function handleLogout() {
     await fetch("/api/member/logout", { method: "POST" })
+    // Tandai di tab ini agar login otomatis ("Ingat ID & Password")
+    // tidak langsung login ulang setelah logout.
+    try {
+      sessionStorage.setItem("member_logged_out", "1")
+    } catch {}
     router.push("/member/login")
     router.refresh()
   }
@@ -242,6 +247,15 @@ export default function MemberProfilePage() {
 
         {editMode ? (
           <form onSubmit={handleUpdateProfile} className="p-4 space-y-3">
+            <div>
+              <label className="text-xs text-gray-500">Region</label>
+              <input
+                name="region"
+                defaultValue={member.region || ""}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                placeholder="Contoh: Jabodetabek, Jawa Timur..."
+              />
+            </div>
             <div>
               <label className="text-xs text-gray-500">Nama Lengkap</label>
               <input

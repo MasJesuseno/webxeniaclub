@@ -136,12 +136,49 @@ export default async function MemberDXICPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">Momen Song {profile.shortName || "DXIC"}</p>
-                  <p className="text-xs text-gray-500">Dengarkan lagu tema momen spesial</p>
+                  <p className="text-xs text-gray-500">{profile.momenSongCaption || "Dengarkan lagu tema momen spesial"}</p>
                 </div>
               </div>
               <audio
                 controls
                 src={profile.momenSong}
+                className="w-full h-10 rounded-lg"
+                preload="metadata"
+              >
+                Browser tidak mendukung pemutar audio.
+              </audio>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Momen Song 2 */}
+      {profile.momenSong2 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+              Momen Song 2 {profile.shortName || "DXIC"}
+            </h2>
+          </div>
+          <div className="p-5">
+            <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center animate-pulse">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Momen Song 2 {profile.shortName || "DXIC"}</p>
+                  <p className="text-xs text-gray-500">{profile.momenSongCaption2 || "Dengarkan lagu tema momen spesial kedua"}</p>
+                </div>
+              </div>
+              <audio
+                controls
+                src={profile.momenSong2}
                 className="w-full h-10 rounded-lg"
                 preload="metadata"
               >

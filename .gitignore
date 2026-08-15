@@ -50,6 +50,7 @@ prisma/dev.db-journal
 # database backups
 /backups/
 *.sql
+!prisma/migrations/**/*.sql
 *.tar.gz
 *.zip
 

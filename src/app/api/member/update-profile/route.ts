@@ -17,6 +17,7 @@ export async function PUT(request: Request) {
       "noWa",
       "email",
       "alamatLengkap",
+      "region",
       "kotaKabupaten",
       "provinsi",
       "noPolisi",

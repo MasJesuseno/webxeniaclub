@@ -4,6 +4,7 @@ import { useState, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { updateProspectiveMember, deleteProspectiveMember, importMembersData } from "@/lib/actions"
 import { ImageUpload } from "@/components/image-upload"
+import { timeAgo } from "@/lib/utils"
 import * as XLSX from "xlsx"
 
 interface ProspectiveMember {
@@ -39,6 +40,8 @@ interface ProspectiveMember {
   adminNote: string | null
   createdAt: string
   updatedAt: string
+  lastLoginAt: string | null
+  isOnline: boolean
 }
 
 interface SiteProfile {
@@ -110,6 +113,7 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
   const [filterKota, setFilterKota] = useState("")
   const [filterProvinsi, setFilterProvinsi] = useState("")
   const [filterRegion, setFilterRegion] = useState("")
+  const [filterLogin, setFilterLogin] = useState("")
 
   // Import state
   const [importing, setImporting] = useState(false)
@@ -181,6 +185,8 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
     if (filterRegion) {
       if (m.region !== filterRegion) return false
     }
+    if (filterLogin === "sudah" && !m.lastLoginAt) return false
+    if (filterLogin === "belum" && m.lastLoginAt) return false
     return true
   })
 
@@ -442,7 +448,7 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
         </div>
 
         {/* Filter Fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">ID Member</label>
             <input
@@ -512,6 +518,18 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Status Login</label>
+            <select
+              value={filterLogin}
+              onChange={(e) => setFilter(setFilterLogin, e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white"
+            >
+              <option value="">Semua</option>
+              <option value="sudah">Sudah Pernah Login</option>
+              <option value="belum">Belum Pernah Login</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -547,6 +565,7 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider">Region</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider">Status Member</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider">Terakhir Login</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider">Masa Berlaku</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider">Tgl Daftar</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700 text-xs uppercase tracking-wider w-24">Aksi</th>
@@ -593,6 +612,24 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
                       {m.statusMember || "—"}
                     </span>
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {m.isOnline ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                        <span className="relative flex w-2 h-2">
+                          <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                          <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+                        </span>
+                        Online
+                      </span>
+                    ) : m.lastLoginAt ? (
+                      <div className="text-xs">
+                        <div className="text-gray-700 font-medium">{timeAgo(m.lastLoginAt)}</div>
+                        <div className="text-gray-400">{new Date(m.lastLoginAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                      </div>
+                    ) : (
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400">Belum pernah</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                     {m.masaBerlaku ? new Date(m.masaBerlaku).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                   </td>
@@ -634,7 +671,7 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
               ))}
               {paginatedMembers.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-16 text-center text-gray-500">
+                  <td colSpan={14} className="px-4 py-16 text-center text-gray-500">
                     {members.length === 0 ? "Belum ada data member terdaftar" : "Tidak ada hasil yang cocok"}
                   </td>
                 </tr>

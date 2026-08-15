@@ -1879,6 +1879,9 @@ export async function updateSiteProfile(formData: FormData) {
     "organizationStructure",
     "jingleMp3",
     "momenSong",
+    "momenSong2",
+    "momenSongCaption",
+    "momenSongCaption2",
   ]
 
   for (const field of fields) {

@@ -38,6 +38,9 @@ interface Profile {
   organizationStructure: string | null
   jingleMp3: string | null
   momenSong: string | null
+  momenSong2: string | null
+  momenSongCaption: string | null
+  momenSongCaption2: string | null
 }
 
 export function SettingsForm({ profile }: { profile: Profile }) {
@@ -52,6 +55,7 @@ export function SettingsForm({ profile }: { profile: Profile }) {
   const [organizationStructure, setOrganizationStructure] = useState(profile.organizationStructure || "")
   const [jingleMp3, setJingleMp3] = useState(profile.jingleMp3 || "")
   const [momenSong, setMomenSong] = useState(profile.momenSong || "")
+  const [momenSong2, setMomenSong2] = useState(profile.momenSong2 || "")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -351,6 +355,19 @@ export function SettingsForm({ profile }: { profile: Profile }) {
             Upload lagu tema momen spesial club (format MP3).
             Audio akan diputar di halaman DXIC Member Area, di bawah Jingle.
           </p>
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Caption Momen Song</label>
+            <input
+              type="text"
+              name="momenSongCaption"
+              defaultValue={profile.momenSongCaption || ""}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+              placeholder="Contoh: Lagu kebersamaan keluarga besar DXIC"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Menggantikan tulisan "Dengarkan lagu tema momen spesial" di Member Area. Kosongkan untuk memakai teks bawaan.
+            </p>
+          </div>
           <div>
             <input type="hidden" name="momenSong" value={momenSong} />
             <FileUpload
@@ -379,6 +396,68 @@ export function SettingsForm({ profile }: { profile: Profile }) {
               <audio
                 controls
                 src={momenSong}
+                className="w-full h-10 rounded-lg"
+                preload="metadata"
+              >
+                Browser tidak mendukung pemutar audio.
+              </audio>
+            </div>
+          )}
+        </section>
+
+        {/* Momen Song 2 */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            Momen Song 2
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload lagu tema momen spesial kedua club (format MP3).
+            Audio akan diputar di halaman DXIC Member Area, di bawah Momen Song.
+          </p>
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Caption Momen Song 2</label>
+            <input
+              type="text"
+              name="momenSongCaption2"
+              defaultValue={profile.momenSongCaption2 || ""}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm"
+              placeholder="Contoh: Lagu perayaan anniversary DXIC"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Menggantikan tulisan "Dengarkan lagu tema momen spesial kedua" di Member Area. Kosongkan untuk memakai teks bawaan.
+            </p>
+          </div>
+          <div>
+            <input type="hidden" name="momenSong2" value={momenSong2} />
+            <FileUpload
+              value={momenSong2}
+              onChange={setMomenSong2}
+              label="File Momen Song 2 MP3"
+              hint="Rekomendasi: file MP3 dengan kualitas tinggi, ukuran maksimal 10MB"
+              accept=".mp3,.mpga,.wav,.ogg,.m4a,.aac"
+            />
+          </div>
+
+          {/* Audio Preview */}
+          {momenSong2 && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center animate-pulse">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Preview Momen Song 2</p>
+                  <p className="text-xs text-gray-500">Klik play untuk mendengarkan</p>
+                </div>
+              </div>
+              <audio
+                controls
+                src={momenSong2}
                 className="w-full h-10 rounded-lg"
                 preload="metadata"
               >
