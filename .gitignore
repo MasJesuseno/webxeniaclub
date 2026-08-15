@@ -66,6 +66,7 @@ sumopod-config.js
 /check-*.js
 /check*.js
 /deploy-*.js
+/deploy.js
 /deploy-sumopod*.js
 /sync-*.js
 /diag-*.js
