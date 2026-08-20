@@ -4,6 +4,7 @@ import { useState } from "react"
 
 interface Partner {
   id: string
+  partnerId: string | null
   name: string
   logo: string
   description: string | null
@@ -66,6 +67,7 @@ export function PartnerCarousel({ partners }: { partners: Partner[] }) {
                   </td>
                   <td className="py-4 px-5">
                     <div className="font-semibold text-gray-900">{partner.name}</div>
+                    <div className="text-xs text-gray-400 font-mono mt-0.5">{partner.partnerId || ""}</div>
                     {partner.website && (
                       <a
                         href={partner.website}

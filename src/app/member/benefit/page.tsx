@@ -6,6 +6,7 @@ import { submitTransaksiMember, getTransaksiSaya } from "@/lib/actions"
 
 interface Benefit {
   id: string
+  partnerId: string | null
   name: string
   logo: string
   description: string | null
@@ -281,6 +282,9 @@ export default function MemberBenefitPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-gray-900">{partner.name}</h3>
+                  {partner.partnerId && (
+                    <p className="text-[10px] text-gray-400 font-mono mt-0.5">{partner.partnerId}</p>
+                  )}
                   {partner.region && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full mt-1">
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

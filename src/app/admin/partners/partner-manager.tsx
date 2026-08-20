@@ -8,6 +8,7 @@ import { ImageUpload } from "@/components/image-upload"
 
 interface Partner {
   id: string
+  partnerId: string | null
   name: string
   logo: string
   description: string | null
@@ -163,6 +164,7 @@ export function PartnerManager({ partners }: { partners: Partner[] }) {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left py-3.5 px-4 font-semibold text-gray-700 w-16">Logo</th>
+                  <th className="text-left py-3.5 px-4 font-semibold text-gray-700">ID Mitra</th>
                   <th className="text-left py-3.5 px-4 font-semibold text-gray-700">Nama Mitra</th>
                   <th className="text-left py-3.5 px-4 font-semibold text-gray-700 hidden lg:table-cell">Deskripsi</th>
                   <th className="text-left py-3.5 px-4 font-semibold text-gray-700 hidden xl:table-cell">Wilayah</th>
@@ -186,6 +188,12 @@ export function PartnerManager({ partners }: { partners: Partner[] }) {
                           </div>
                         )}
                       </div>
+                    </td>
+                    {/* ID Mitra */}
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                        {partner.partnerId || "—"}
+                      </span>
                     </td>
                     {/* Nama + Website */}
                     <td className="py-3 px-4">

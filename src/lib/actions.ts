@@ -545,6 +545,24 @@ export async function getActivePartners() {
   })
 }
 
+async function generatePartnerId(): Promise<string> {
+  // Find the highest existing partnerId number
+  const lastPartner = await prisma.partner.findFirst({
+    where: { partnerId: { startsWith: "DXIC-BEN-" } },
+    orderBy: { partnerId: "desc" },
+  })
+
+  let nextNumber = 1
+  if (lastPartner?.partnerId) {
+    const match = lastPartner.partnerId.match(/DXIC-BEN-(\d+)/)
+    if (match) {
+      nextNumber = parseInt(match[1], 10) + 1
+    }
+  }
+
+  return `DXIC-BEN-${String(nextNumber).padStart(3, "0")}`
+}
+
 export async function createPartner(_prevState: any, formData: FormData) {
   const name = formData.get("name") as string
   const logo = formData.get("logo") as string
@@ -557,8 +575,11 @@ export async function createPartner(_prevState: any, formData: FormData) {
 
   if (!name || !logo) return { error: "Nama dan logo mitra harus diisi" }
 
+  const partnerId = await generatePartnerId()
+
   await prisma.partner.create({
     data: {
+      partnerId,
       name,
       logo,
       description: description || null,

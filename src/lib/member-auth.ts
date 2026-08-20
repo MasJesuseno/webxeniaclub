@@ -20,6 +20,9 @@ export async function getMemberSession() {
     where: { memberId: payload.memberId },
   })
 
+  // Tolak sesi member yang di-blacklist (misal di-blacklist setelah login)
+  if (member?.statusMember === "Black List") return null
+
   return member
 }
 

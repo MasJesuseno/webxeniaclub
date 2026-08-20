@@ -173,6 +173,7 @@ model Testimonial {
 
 model Partner {
   id            String   @id @default(cuid())
+  partnerId     String?  @unique @db.VarChar(20)
   name          String   @db.VarChar(255)
   logo          String   @db.Text
   description   String?  @db.Text

@@ -8,6 +8,7 @@ import { ImageUpload } from "@/components/image-upload"
 
 interface Partner {
   id: string
+  partnerId: string | null
   name: string
   logo: string
   description: string | null
@@ -34,6 +35,15 @@ export function EditPartnerForm({ partner }: { partner: Partner }) {
             <h3 className="font-semibold text-gray-900 text-lg">Informasi Mitra</h3>
 
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">ID Mitra</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={partner.partnerId || "—"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500 cursor-not-allowed"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Mitra</label>
                 <input
