@@ -10,7 +10,10 @@ export async function GET() {
   }
 
   const participations = await prisma.conversationParticipant.findMany({
-    where: { memberId: session.memberId! },
+    where: {
+      memberId: session.memberId!,
+      conversation: { type: "DM" },
+    },
     include: {
       conversation: {
         include: {
