@@ -114,7 +114,7 @@ function DMList() {
   const [showNewChat, setShowNewChat] = useState(false)
   const [memberIdInput, setMemberIdInput] = useState("")
   const [searching, setSearching] = useState(false)
-  const [searchResult, setSearchResult] = useState<Member | null>(null)
+  const [searchResults, setSearchResults] = useState<Member[]>([])
   const [searchError, setSearchError] = useState("")
 
   useEffect(() => {
@@ -135,22 +135,22 @@ function DMList() {
   }
 
   const handleSearchMember = async () => {
-    if (!memberIdInput.trim()) return
+    if (!memberIdInput.trim() || memberIdInput.trim().length < 2) return
     setSearching(true)
     setSearchError("")
-    setSearchResult(null)
+    setSearchResults([])
 
     try {
-      const res = await fetch(`/api/member/public/${memberIdInput.trim()}`)
+      const res = await fetch(`/api/member/search-chat?q=${encodeURIComponent(memberIdInput.trim())}`)
       if (res.ok) {
         const data = await res.json()
-        if (data.member) {
-          setSearchResult(data.member)
+        if (data.members && data.members.length > 0) {
+          setSearchResults(data.members)
         } else {
           setSearchError("Member tidak ditemukan")
         }
       } else {
-        setSearchError("Member tidak ditemukan")
+        setSearchError("Gagal mencari member")
       }
     } catch {
       setSearchError("Gagal mencari member")
@@ -170,12 +170,12 @@ function DMList() {
       if (res.ok && data.conversationId) {
         setShowNewChat(false)
         setMemberIdInput("")
-        setSearchResult(null)
+        setSearchResults([])
         router.push(`/member/chat/${data.conversationId}`)
       } else {
         setSearchError(data.error || "Gagal membuat percakapan")
       }
-    } catch (e) {
+    } catch {
       setSearchError("Gagal membuat percakapan")
     }
   }
@@ -271,7 +271,7 @@ function DMList() {
                 onClick={() => {
                   setShowNewChat(false)
                   setMemberIdInput("")
-                  setSearchResult(null)
+                  setSearchResults([])
                   setSearchError("")
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -283,14 +283,14 @@ function DMList() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">ID Member tujuan</label>
+                <label className="text-xs text-gray-500 mb-1 block">ID atau Nama Member</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={memberIdInput}
                     onChange={(e) => setMemberIdInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearchMember()}
-                    placeholder="Contoh: DXIC-BEN-001"
+                    placeholder="Contoh: DXIC-BEN-001 atau Budi"
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   />
                   <button
@@ -305,25 +305,38 @@ function DMList() {
               {searchError && (
                 <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">{searchError}</p>
               )}
-              {searchResult && (
-                <div className="border border-gray-200 rounded-lg p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700 font-bold">
-                      {getInitial(getDisplayName(searchResult))}
+              {searchResults.length > 0 && (
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  <p className="text-[10px] text-gray-400 mb-1">{searchResults.length} member ditemukan</p>
+                  {searchResults.map((m) => (
+                    <div
+                      key={m.memberId}
+                      className="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700 font-bold">
+                            {getInitial(getDisplayName(m))}
+                          </div>
+                          {m.isOnline && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{getDisplayName(m)}</p>
+                          <p className="text-xs text-gray-500">
+                            {m.memberId} · {m.region || "-"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleStartChat(m.memberId!)}
+                        className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700"
+                      >
+                        Chat
+                      </button>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{getDisplayName(searchResult)}</p>
-                      <p className="text-xs text-gray-500">
-                        {searchResult.memberId} · {searchResult.region || "No region"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleStartChat(searchResult.memberId!)}
-                    className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700"
-                  >
-                    Chat
-                  </button>
+                  ))}
                 </div>
               )}
             </div>
