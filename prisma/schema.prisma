@@ -422,6 +422,23 @@ model Message {
   @@map("messages")
 }
 
+// ==================== PENGURUS ====================
+
+model Pengurus {
+  id        String   @id @default(cuid())
+  memberId  String?  @db.VarChar(50) // ID member (link ke data member)
+  nama      String   @db.VarChar(255)
+  jabatan   String   @db.VarChar(100)
+  foto      String?  @db.Text
+  tentang   String?  @db.Text // deskripsi singkat
+  urutan    Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pengurus")
+}
+
 model ProspectiveMember {
   id               String    @id @default(cuid())
   namaLengkap      String    @db.VarChar(255)

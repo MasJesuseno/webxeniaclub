@@ -58,6 +58,7 @@ const roleDefaults: {
       "buku-member",
       "regions",
       "sos",
+      "pengurus",
       "barang",
       "barang-masuk-keluar",
     ],

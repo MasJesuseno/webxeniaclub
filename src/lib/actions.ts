@@ -2654,3 +2654,76 @@ export async function lookupMemberById(memberId: string) {
     hp: member.noWa,
   }
 }
+
+// ==================== PENGURUS ====================
+
+export async function getPenguruses() {
+  return prisma.pengurus.findMany({
+    orderBy: [{ urutan: "asc" }, { createdAt: "asc" }],
+  })
+}
+
+export async function createPengurus(_prevState: any, formData: FormData) {
+  const memberId = formData.get("memberId") as string
+  const nama = formData.get("nama") as string
+  const jabatan = formData.get("jabatan") as string
+  const foto = formData.get("foto") as string
+  const tentang = formData.get("tentang") as string
+  const urutan = parseInt(formData.get("urutan") as string) || 0
+
+  if (!nama || !jabatan) return { error: "Nama dan jabatan harus diisi" }
+
+  await prisma.pengurus.create({
+    data: {
+      memberId: memberId || null,
+      nama,
+      jabatan,
+      foto: foto || null,
+      tentang: tentang || null,
+      urutan,
+    },
+  })
+
+  revalidatePath("/admin/pengurus")
+  revalidatePath("/", "layout")
+  return { success: true }
+}
+
+export async function updatePengurus(id: string, _prevState: any, formData: FormData) {
+  const memberId = formData.get("memberId") as string
+  const nama = formData.get("nama") as string
+  const jabatan = formData.get("jabatan") as string
+  const foto = formData.get("foto") as string
+  const tentang = formData.get("tentang") as string
+  const urutan = parseInt(formData.get("urutan") as string) || 0
+  const isActive = formData.get("isActive") === "true"
+
+  if (!nama || !jabatan) return { error: "Nama dan jabatan harus diisi" }
+
+  const existing = await prisma.pengurus.findUnique({ where: { id } })
+  if (!existing) return { error: "Data pengurus tidak ditemukan" }
+
+  await prisma.pengurus.update({
+    where: { id },
+    data: {
+      memberId: memberId || null,
+      nama,
+      jabatan,
+      foto: foto || existing.foto,
+      tentang: tentang || null,
+      urutan,
+      isActive,
+    },
+  })
+
+  revalidatePath("/admin/pengurus")
+  revalidatePath("/", "layout")
+  return { success: true }
+}
+
+export async function deletePengurus(id: string) {
+  await prisma.pengurus.delete({ where: { id } })
+  revalidatePath("/admin/pengurus")
+  revalidatePath("/", "layout")
+  return { success: true }
+}
