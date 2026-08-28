@@ -377,6 +377,51 @@ model SosMessage {
   @@map("sos_messages")
 }
 
+// ==================== CHAT ====================
+
+model Conversation {
+  id        String   @id @default(cuid())
+  type      String   @default("DM") @db.VarChar(10) // DM | GROUP
+  name      String?  @db.VarChar(255) // nama group chat (untuk GROUP)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  Message[]
+  participants ConversationParticipant[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  memberId       String       @db.VarChar(50)
+  lastReadAt     DateTime?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, memberId])
+  @@index([conversationId])
+  @@index([memberId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String       @db.VarChar(50)
+  content        String       @db.Text
+  imageUrl       String?      @db.Text // lampiran gambar
+  isEdited       Boolean      @default(false)
+  isDeleted      Boolean      @default(false) // soft delete
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
 model ProspectiveMember {
   id               String    @id @default(cuid())
   namaLengkap      String    @db.VarChar(255)

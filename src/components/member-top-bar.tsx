@@ -11,6 +11,7 @@ export function MemberTopBar({
   sosOpenCount: number
 }) {
   const [sosCount, setSosCount] = useState(initialCount)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const fetchSosCount = useCallback(async () => {
     try {
@@ -22,11 +23,24 @@ export function MemberTopBar({
     } catch {}
   }, [])
 
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/member/messages/unread")
+      if (res.ok) {
+        const data = await res.json()
+        setUnreadCount(data.unreadCount ?? 0)
+      }
+    } catch {}
+  }, [])
+
   useEffect(() => {
-    // Polling setiap 30 detik
-    const interval = setInterval(fetchSosCount, 30_000)
+    // Polling setiap 15 detik
+    const interval = setInterval(() => {
+      fetchSosCount()
+      fetchUnreadCount()
+    }, 15_000)
     return () => clearInterval(interval)
-  }, [fetchSosCount])
+  }, [fetchSosCount, fetchUnreadCount])
 
   return (
     <div className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm no-print">
@@ -37,6 +51,22 @@ export function MemberTopBar({
         <span className="font-semibold text-sm">Member Area</span>
       </div>
       <div className="flex items-center gap-3">
+        {/* Chat Notification */}
+        {unreadCount > 0 && (
+          <Link
+            href="/member/chat"
+            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 rounded-lg px-2.5 py-1.5 transition-all"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-400" />
+            </span>
+            <span className="text-xs font-bold">{unreadCount}</span>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </Link>
+        )}
         {/* SOS Notification */}
         {sosCount > 0 && (
           <Link

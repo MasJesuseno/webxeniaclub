@@ -312,7 +312,7 @@ export default function MemberSosPage() {
                     <p className="text-sm text-gray-900 font-medium">{item.hp}</p>
                   </div>
                   <a
-                    href={`https://wa.me/${item.hp.replace(/[^0-9]/g, "")}`}
+                    href={`https://wa.me/${item.hp.replace(/^0/, "62").replace(/[^0-9]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-green-600 transition-all"
