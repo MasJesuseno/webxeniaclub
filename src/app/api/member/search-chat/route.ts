@@ -16,12 +16,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ members: [] })
   }
 
-  // Cari by memberId exact match ATAU nama LIKE (MySQL sudah case-insensitive)
+  // Cari by memberId exact match ATAU nama LIKE
+  // Filter sama dengan public API: exclude Black List, include Diterima/Aktif
   const members = await prisma.prospectiveMember.findMany({
     where: {
       AND: [
-        { status: "Diterima" },
         { statusMember: { not: "Black List" } },
+        { OR: [{ status: "Diterima" }, { statusMember: "Aktif" }] },
         {
           OR: [
             { memberId: q },
