@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createGalleryItem, deleteGalleryItem } from "@/lib/actions"
-import { ImageUpload } from "@/components/image-upload"
+import { MultiImageUpload } from "@/components/multi-image-upload"
 
 interface GalleryItem {
   id: string
@@ -24,22 +24,25 @@ interface Album {
 export function GalleryManager({ items, albums }: { items: GalleryItem[]; albums: Album[] }) {
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
-  const [image, setImage] = useState("")
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
   const [albumId, setAlbumId] = useState(albums[0]?.id || "")
+  const [uploading, setUploading] = useState(false)
 
-  async function handleUpload(e: React.FormEvent) {
-    e.preventDefault()
-    if (!image || !albumId) { alert("Gambar dan album harus diisi"); return }
-    const form = new FormData()
-    form.set("image", image)
-    form.set("albumId", albumId)
-    form.set("title", title)
-    form.set("description", description)
-    const res = await createGalleryItem(form)
-    if (res?.error) alert(res.error)
-    setImage(""); setTitle(""); setDescription(""); setUploadOpen(false)
+  async function handleMultiUpload(urls: string[]) {
+    if (!albumId || urls.length === 0) { alert("Pilih album dan gambar"); return }
+    setUploading(true)
+    let successCount = 0
+    for (const url of urls) {
+      const form = new FormData()
+      form.set("image", url)
+      form.set("albumId", albumId)
+      form.set("title", "")
+      form.set("description", "")
+      const res = await createGalleryItem(form)
+      if (!res?.error) successCount++
+    }
+    setUploading(false)
+    setUploadOpen(false)
+    alert(`${successCount} foto berhasil diupload!`)
     router.refresh()
   }
 
@@ -72,27 +75,23 @@ export function GalleryManager({ items, albums }: { items: GalleryItem[]; albums
       ) : (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-4">Upload Foto Baru</h3>
-          <form onSubmit={handleUpload} className="space-y-4">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Album</label>
               <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm">
                 {albums.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
               </select>
             </div>
-            <ImageUpload value={image} onChange={setImage} label="Foto" hint="Rekomendasi: 1920×1080px (16:9) untuk foto galeri" />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Judul Foto (opsional)</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Judul foto" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Deskripsi (opsional)</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-sm resize-none" />
-            </div>
+            <MultiImageUpload 
+              onUploadComplete={handleMultiUpload} 
+              albumId={albumId}
+              label="Foto" 
+              hint="Pilih banyak foto sekaligus — semua akan masuk ke album yang sama" 
+            />
             <div className="flex gap-3">
-              <button type="submit" className="dxic-gradient text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg transition-all">Upload</button>
-              <button type="button" onClick={() => setUploadOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">Batal</button>
+              <button type="button" onClick={() => setUploadOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">Tutup</button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 

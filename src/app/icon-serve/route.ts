@@ -30,8 +30,12 @@ export async function GET() {
   }
 
   try {
-    const relativePath = logoUrl.replace(/^\//, "")
-    const filePath = path.join(process.cwd(), "public", relativePath)
+    // Normalize path: /api/uploads/x -> uploads/x (file is in public/uploads/)
+    let normalizedPath = logoUrl.replace(/^\//, "")
+    if (normalizedPath.startsWith("api/uploads/")) {
+      normalizedPath = normalizedPath.replace("api/uploads/", "uploads/")
+    }
+    const filePath = path.join(process.cwd(), "public", normalizedPath)
     const imageBuffer = await fs.readFile(filePath)
     const ext = path.extname(logoUrl).toLowerCase()
     const contentType = MIME_MAP[ext] || "image/png"

@@ -17,8 +17,8 @@ export function generateMetadata(): Metadata {
     title: "DXIC - Xenia Club Indonesia",
     description: "Komunitas pemilik mobil Daihatsu Xenia seluruh Indonesia. Xenia Menyatukan Kita.",
     icons: [
-      { rel: "icon", url: "/icon-serve" },
-      { rel: "apple-touch-icon", url: "/icon-serve" },
+      { rel: "icon", url: "https://xeniaclub.or.id/favicon.png", sizes: "48x48", type: "image/png" },
+      { rel: "apple-touch-icon", url: "https://xeniaclub.or.id/favicon.png", sizes: "48x48" },
     ],
   }
 }

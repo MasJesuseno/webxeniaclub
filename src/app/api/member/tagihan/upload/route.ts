@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const filePath = path.join(uploadDir, fileName)
     await writeFile(filePath, buffer)
 
-    const fotoBukti = `/uploads/bukti/${fileName}`
+    const fotoBukti = `/api/uploads/bukti/${fileName}`
 
     // Update registration data
     const updateData: any = {
