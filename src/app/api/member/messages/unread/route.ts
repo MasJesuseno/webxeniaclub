@@ -19,7 +19,9 @@ export async function GET() {
             where: {
               senderId: { not: session.memberId! },
             },
-            select: { id: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { id: true, senderId: true, createdAt: true, conversationId: true },
           },
         },
       },
@@ -28,16 +30,40 @@ export async function GET() {
 
   let unreadCount = 0
   let unreadConversations = 0
+  let latestMessage: { senderName: string; conversationId: string } | null = null
+  let latestTime: Date | null = null
 
   for (const p of participations) {
-    const unreadMessages = p.conversation.messages.filter(
-      (msg) => !p.lastReadAt || msg.createdAt > p.lastReadAt
-    )
-    if (unreadMessages.length > 0) {
-      unreadCount += unreadMessages.length
+    // Hitung unread messages
+    const allUnread = await prisma.message.findMany({
+      where: {
+        conversationId: p.conversationId,
+        senderId: { not: session.memberId! },
+        createdAt: p.lastReadAt ? { gt: p.lastReadAt } : undefined,
+      },
+      select: { id: true, createdAt: true },
+    })
+
+    if (allUnread.length > 0) {
+      unreadCount += allUnread.length
       unreadConversations++
+
+      // Cek apakah ini pesan terbaru
+      const latest = p.conversation.messages[0]
+      if (latest && (!latestTime || latest.createdAt > latestTime)) {
+        latestTime = latest.createdAt
+        // Ambil nama pengirim
+        const sender = await prisma.prospectiveMember.findFirst({
+          where: { memberId: latest.senderId },
+          select: { namaLengkap: true, namaPanggilan: true },
+        })
+        latestMessage = {
+          senderName: sender?.namaPanggilan || sender?.namaLengkap || "Member",
+          conversationId: latest.conversationId,
+        }
+      }
     }
   }
 
-  return NextResponse.json({ unreadCount, unreadConversations })
+  return NextResponse.json({ unreadCount, unreadConversations, latestMessage })
 }
