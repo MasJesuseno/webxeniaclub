@@ -1,0 +1,393 @@
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { formatDate, truncate, stripHtml } from "@/lib/utils"
+
+interface Post {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  content: string
+  image: string | null
+  publishedAt: Date | null
+  author: { name: string }
+  category: { name: string; color: string } | null
+}
+
+interface KegiatanItem {
+  id: string
+  tanggal: Date
+  region: string
+  namaKegiatan: string
+  uraian: string | null
+  lokasi: string
+  kontakPerson: string
+}
+
+export function BeritaKegiatanTabs({
+  posts,
+  kegiatan,
+  canAddKegiatan,
+}: {
+  posts: Post[]
+  kegiatan: KegiatanItem[]
+  canAddKegiatan: boolean
+}) {
+  const router = useRouter()
+  const [tab, setTab] = useState<"berita" | "kegiatan">("berita")
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  // Form state
+  const [formTanggal, setFormTanggal] = useState("")
+  const [formRegion, setFormRegion] = useState("")
+  const [formNama, setFormNama] = useState("")
+  const [formUraian, setFormUraian] = useState("")
+  const [formLokasi, setFormLokasi] = useState("")
+  const [formKontak, setFormKontak] = useState("")
+
+  function resetForm() {
+    setFormTanggal("")
+    setFormRegion("")
+    setFormNama("")
+    setFormUraian("")
+    setFormLokasi("")
+    setFormKontak("")
+    setError(null)
+    setSuccess(false)
+    setShowAddForm(false)
+  }
+
+  async function handleAddKegiatan() {
+    setError(null)
+    setSuccess(false)
+
+    if (!formTanggal) return setError("Tanggal harus diisi")
+    if (!formRegion.trim()) return setError("Region / Provinsi harus diisi")
+    if (!formNama.trim()) return setError("Nama kegiatan harus diisi")
+    if (!formLokasi.trim()) return setError("Lokasi harus diisi")
+    if (!formKontak.trim()) return setError("Kontak Person harus diisi")
+
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/member/kegiatan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tanggal: formTanggal,
+          region: formRegion.trim(),
+          namaKegiatan: formNama.trim(),
+          uraian: formUraian.trim() || null,
+          lokasi: formLokasi.trim(),
+          kontakPerson: formKontak.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Gagal menambahkan kegiatan")
+      } else {
+        setSuccess(true)
+        resetForm()
+        router.refresh()
+      }
+    } catch {
+      setError("Terjadi kesalahan jaringan")
+    }
+    setSubmitting(false)
+  }
+
+  function formatTanggal(d: Date) {
+    return new Date(d).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h1 className="text-lg font-bold text-gray-900">Berita</h1>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Informasi dan berita terbaru seputar DXIC
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <button
+          onClick={() => setTab("berita")}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+            tab === "berita"
+              ? "bg-white text-red-600 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Berita
+        </button>
+        <button
+          onClick={() => setTab("kegiatan")}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+            tab === "kegiatan"
+              ? "bg-white text-red-600 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Kegiatan ({kegiatan.length})
+        </button>
+      </div>
+
+      {/* Tab Content: Berita */}
+      {tab === "berita" && (
+        <>
+          {posts.length > 0 ? (
+            <div className="space-y-3">
+              {posts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/member/berita/${post.slug}`}
+                  className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all active:scale-[0.99]"
+                >
+                  <div className="flex gap-4 p-4">
+                    {/* Thumbnail */}
+                    <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-gray-100">
+                      {post.image ? (
+                        <img
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full dxic-gradient flex items-center justify-center">
+                          <svg className="w-8 h-8 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {post.category && (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[9px] font-semibold text-white"
+                            style={{ backgroundColor: post.category.color || "#DC2626" }}
+                          >
+                            {post.category.name}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-gray-400">
+                          {post.publishedAt ? formatDate(post.publishedAt) : ""}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-snug">
+                        {post.title}
+                      </h3>
+                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">
+                        {post.excerpt || truncate(stripHtml(post.content), 100)}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-1.5">
+                        {post.author.name}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+              <p className="text-sm text-gray-500">Belum ada berita</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Tab Content: Kegiatan */}
+      {tab === "kegiatan" && (
+        <>
+          {/* Add Button */}
+          {canAddKegiatan && !showAddForm && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-red-300 text-red-600 text-sm font-semibold hover:bg-red-50 hover:border-red-400 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Tambah Kegiatan
+            </button>
+          )}
+
+          {/* Add Form */}
+          {showAddForm && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">Tambah Kegiatan</h3>
+                <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-600 mb-1">Tanggal *</label>
+                  <input
+                    type="date"
+                    value={formTanggal}
+                    onChange={(e) => setFormTanggal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-600 mb-1">Region / Provinsi *</label>
+                  <input
+                    type="text"
+                    value={formRegion}
+                    onChange={(e) => setFormRegion(e.target.value)}
+                    placeholder="Contoh: JAKARTA / DKI Jakarta"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-xs"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">Nama Kegiatan *</label>
+                <input
+                  type="text"
+                  value={formNama}
+                  onChange={(e) => setFormNama(e.target.value)}
+                  placeholder="Nama kegiatan"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">Uraian</label>
+                <textarea
+                  value={formUraian}
+                  onChange={(e) => setFormUraian(e.target.value)}
+                  placeholder="Deskripsi singkat kegiatan (opsional)"
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-xs resize-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-600 mb-1">Lokasi *</label>
+                  <input
+                    type="text"
+                    value={formLokasi}
+                    onChange={(e) => setFormLokasi(e.target.value)}
+                    placeholder="Lokasi kegiatan"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-600 mb-1">Kontak Person *</label>
+                  <input
+                    type="text"
+                    value={formKontak}
+                    onChange={(e) => setFormKontak(e.target.value)}
+                    placeholder="Nama / No. HP"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 outline-none text-xs"
+                  />
+                </div>
+              </div>
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-700">{error}</div>
+              )}
+              {success && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-700">
+                  Kegiatan berhasil ditambahkan!
+                </div>
+              )}
+              <button
+                onClick={handleAddKegiatan}
+                disabled={submitting}
+                className="w-full dxic-gradient text-white py-2.5 rounded-xl text-xs font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                {submitting ? "Menyimpan..." : "Simpan Kegiatan"}
+              </button>
+            </div>
+          )}
+
+          {/* Kegiatan List */}
+          {kegiatan.length > 0 ? (
+            <div className="space-y-3">
+              {kegiatan.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Date Badge */}
+                    <div className="shrink-0 w-14 h-14 rounded-xl bg-red-50 flex flex-col items-center justify-center">
+                      <span className="text-[10px] font-semibold text-red-600 uppercase">
+                        {new Date(item.tanggal).toLocaleDateString("id-ID", { month: "short" })}
+                      </span>
+                      <span className="text-lg font-bold text-red-700 leading-none">
+                        {new Date(item.tanggal).getDate()}
+                      </span>
+                      <span className="text-[9px] text-red-500">
+                        {new Date(item.tanggal).getFullYear()}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm text-gray-900 leading-snug">
+                        {item.namaKegiatan}
+                      </h3>
+                      {item.uraian && (
+                        <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{item.uraian}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {item.lokasi}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          {item.region}
+                        </span>
+                      </div>
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          {item.kontakPerson}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm text-gray-500">Belum ada kegiatan</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

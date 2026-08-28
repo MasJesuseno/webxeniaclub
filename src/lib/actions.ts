@@ -1026,6 +1026,7 @@ export async function updateProspectiveMember(id: string, formData: FormData) {
   const statusMember = formData.get("statusMember") as string
   const masaBerlaku = formData.get("masaBerlaku") as string
   const password = formData.get("password") as string
+  const canUpdateKegiatan = formData.get("canUpdateKegiatan") === "true"
 
   if (!namaLengkap) {
     return { error: "Nama lengkap harus diisi" }
@@ -1061,6 +1062,7 @@ export async function updateProspectiveMember(id: string, formData: FormData) {
     statusMember: statusMember || null,
     masaBerlaku: masaBerlaku ? new Date(masaBerlaku) : null,
     adminNote: adminNote || null,
+    canUpdateKegiatan,
   }
 
   // Hash password if provided (non-empty)
@@ -2725,5 +2727,93 @@ export async function deletePengurus(id: string) {
   await prisma.pengurus.delete({ where: { id } })
   revalidatePath("/admin/pengurus")
   revalidatePath("/", "layout")
+  return { success: true }
+}
+
+// ==================== KEGIATAN ====================
+
+export async function createKegiatan(_prevState: any, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/kegiatan"))) {
+    return { error: "Anda tidak memiliki izin untuk mengelola Kegiatan" }
+  }
+
+  const tanggal = formData.get("tanggal") as string
+  const region = (formData.get("region") as string || "").trim()
+  const namaKegiatan = (formData.get("namaKegiatan") as string || "").trim()
+  const uraian = (formData.get("uraian") as string || "").trim()
+  const lokasi = (formData.get("lokasi") as string || "").trim()
+  const kontakPerson = (formData.get("kontakPerson") as string || "").trim()
+
+  if (!tanggal) return { error: "Tanggal harus diisi" }
+  if (!region) return { error: "Region / Provinsi harus diisi" }
+  if (!namaKegiatan) return { error: "Nama kegiatan harus diisi" }
+  if (!lokasi) return { error: "Lokasi harus diisi" }
+  if (!kontakPerson) return { error: "Kontak Person harus diisi" }
+
+  await prisma.kegiatan.create({
+    data: {
+      tanggal: new Date(tanggal),
+      region,
+      namaKegiatan,
+      uraian: uraian || null,
+      lokasi,
+      kontakPerson,
+    },
+  })
+
+  revalidatePath("/admin/kegiatan")
+  return { success: true }
+}
+
+export async function updateKegiatan(id: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/kegiatan"))) {
+    return { error: "Anda tidak memiliki izin untuk mengelola Kegiatan" }
+  }
+
+  const tanggal = formData.get("tanggal") as string
+  const region = (formData.get("region") as string || "").trim()
+  const namaKegiatan = (formData.get("namaKegiatan") as string || "").trim()
+  const uraian = (formData.get("uraian") as string || "").trim()
+  const lokasi = (formData.get("lokasi") as string || "").trim()
+  const kontakPerson = (formData.get("kontakPerson") as string || "").trim()
+
+  if (!tanggal) return { error: "Tanggal harus diisi" }
+  if (!region) return { error: "Region / Provinsi harus diisi" }
+  if (!namaKegiatan) return { error: "Nama kegiatan harus diisi" }
+  if (!lokasi) return { error: "Lokasi harus diisi" }
+  if (!kontakPerson) return { error: "Kontak Person harus diisi" }
+
+  const existing = await prisma.kegiatan.findUnique({ where: { id } })
+  if (!existing) return { error: "Data kegiatan tidak ditemukan" }
+
+  await prisma.kegiatan.update({
+    where: { id },
+    data: {
+      tanggal: new Date(tanggal),
+      region,
+      namaKegiatan,
+      uraian: uraian || null,
+      lokasi,
+      kontakPerson,
+    },
+  })
+
+  revalidatePath("/admin/kegiatan")
+  return { success: true }
+}
+
+export async function deleteKegiatan(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/kegiatan"))) {
+    return { error: "Anda tidak memiliki izin untuk menghapus Kegiatan" }
+  }
+
+  await prisma.kegiatan.delete({ where: { id } })
+  revalidatePath("/admin/kegiatan")
   return { success: true }
 }

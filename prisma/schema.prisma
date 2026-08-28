@@ -479,5 +479,20 @@ model ProspectiveMember {
   lastLoginAt      DateTime?
   lastLocationLabel String?  @db.Text
   isOnline         Boolean   @default(false)
+  canUpdateKegiatan Boolean  @default(false)
 
+}
+
+model Kegiatan {
+  id          String    @id @default(cuid())
+  tanggal     DateTime
+  region      String    @db.VarChar(100)
+  namaKegiatan String  @db.VarChar(255)
+  uraian      String?   @db.Text
+  lokasi      String    @db.VarChar(255)
+  kontakPerson String   @db.VarChar(255)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("kegiatan")
 }

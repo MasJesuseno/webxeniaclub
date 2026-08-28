@@ -819,6 +819,20 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
                 <p className="text-[10px] text-gray-400 mt-1">Isi hanya jika ingin mengganti password member</p>
               </div>
               <div className="sm:col-span-2">
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!editData.canUpdateKegiatan}
+                    onChange={(e) => setEditData({ ...editData, canUpdateKegiatan: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Update Kegiatan</span>
+                    <p className="text-[10px] text-gray-400">Izinkan member menambahkan kegiatan di Daftar Kegiatan</p>
+                  </div>
+                </label>
+              </div>
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Catatan Admin</label>
                 <input
                   type="text"
