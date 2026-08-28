@@ -119,7 +119,7 @@ function DMList() {
 
   useEffect(() => {
     fetchConversations()
-    const interval = setInterval(fetchConversations, 15000)
+    const interval = setInterval(fetchConversations, 5000)
     return () => clearInterval(interval)
   }, [])
 

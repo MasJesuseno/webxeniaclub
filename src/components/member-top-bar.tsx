@@ -74,7 +74,7 @@ export function MemberTopBar({
     const interval = setInterval(() => {
       fetchSosCount()
       fetchUnreadCount()
-    }, 15_000)
+    }, 5_000)
     return () => {
       clearInterval(interval)
       if (toastTimeout.current) clearTimeout(toastTimeout.current)
