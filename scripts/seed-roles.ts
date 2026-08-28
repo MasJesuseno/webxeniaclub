@@ -57,6 +57,7 @@ const roleDefaults: {
       "registration-data",
       "buku-member",
       "regions",
+      "sos",
       "barang",
       "barang-masuk-keluar",
     ],

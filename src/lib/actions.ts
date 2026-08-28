@@ -2529,3 +2529,128 @@ export async function exportBarangTransaksis(formData: FormData) {
     keterangan: r.keterangan || "",
   }))
 }
+
+// ==================== SOS ====================
+
+export async function getSosMessages() {
+  return prisma.sosMessage.findMany({
+    orderBy: { createdAt: "desc" },
+  })
+}
+
+export async function createSosMessage(_prevState: { error?: string; success?: boolean } | null, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/sos"))) {
+    return { error: "Anda tidak memiliki izin untuk mengelola SOS" }
+  }
+
+  const memberId = (formData.get("memberId") as string || "").trim()
+  const nama = (formData.get("nama") as string || "").trim()
+  const region = (formData.get("region") as string || "").trim()
+  const hp = (formData.get("hp") as string || "").trim()
+  const latitude = parseFloat(formData.get("latitude") as string) || null
+  const longitude = parseFloat(formData.get("longitude") as string) || null
+  const kebutuhan = (formData.get("kebutuhan") as string || "").trim()
+  const status = (formData.get("status") as string || "Open").trim()
+
+  if (!nama) return { error: "Nama harus diisi" }
+  if (!hp) return { error: "No HP harus diisi" }
+  if (!kebutuhan) return { error: "Kebutuhan harus diisi" }
+  if (status !== "Open" && status !== "Close") return { error: "Status tidak valid" }
+
+  await prisma.sosMessage.create({
+    data: {
+      memberId: memberId || null,
+      nama,
+      region: region || null,
+      hp,
+      latitude,
+      longitude,
+      kebutuhan,
+      status,
+    },
+  })
+
+  revalidatePath("/admin/sos")
+  return { success: true }
+}
+
+export async function updateSosMessage(id: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/sos"))) {
+    return { error: "Anda tidak memiliki izin untuk mengelola SOS" }
+  }
+
+  const existing = await prisma.sosMessage.findUnique({ where: { id } })
+  if (!existing) return { error: "Data SOS tidak ditemukan" }
+
+  const memberId = (formData.get("memberId") as string || "").trim()
+  const nama = (formData.get("nama") as string || "").trim()
+  const region = (formData.get("region") as string || "").trim()
+  const hp = (formData.get("hp") as string || "").trim()
+  const latitude = parseFloat(formData.get("latitude") as string) || null
+  const longitude = parseFloat(formData.get("longitude") as string) || null
+  const kebutuhan = (formData.get("kebutuhan") as string || "").trim()
+  const status = (formData.get("status") as string || "Open").trim()
+
+  if (!nama) return { error: "Nama harus diisi" }
+  if (!hp) return { error: "No HP harus diisi" }
+  if (!kebutuhan) return { error: "Kebutuhan harus diisi" }
+  if (status !== "Open" && status !== "Close") return { error: "Status tidak valid" }
+
+  await prisma.sosMessage.update({
+    where: { id },
+    data: {
+      memberId: memberId || null,
+      nama,
+      region: region || null,
+      hp,
+      latitude,
+      longitude,
+      kebutuhan,
+      status,
+    },
+  })
+
+  revalidatePath("/admin/sos")
+  return { success: true }
+}
+
+export async function deleteSosMessage(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/sos"))) {
+    return { error: "Anda tidak memiliki izin untuk menghapus SOS" }
+  }
+
+  const existing = await prisma.sosMessage.findUnique({ where: { id } })
+  if (!existing) return { error: "Data SOS tidak ditemukan" }
+
+  await prisma.sosMessage.delete({ where: { id } })
+  revalidatePath("/admin/sos")
+  return { success: true }
+}
+
+export async function lookupMemberById(memberId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+  if (!(await canAccessAdminMenu(session.user.id, "/admin/sos"))) return null
+
+  const member = await prisma.prospectiveMember.findUnique({
+    where: { memberId },
+    select: {
+      namaLengkap: true,
+      region: true,
+      noWa: true,
+    },
+  })
+
+  if (!member) return null
+  return {
+    nama: member.namaLengkap,
+    region: member.region,
+    hp: member.noWa,
+  }
+}

@@ -361,6 +361,22 @@ model RegistrationData {
   @@index([memberId])
 }
 
+model SosMessage {
+  id          String   @id @default(cuid())
+  memberId    String?  @db.VarChar(50)
+  nama        String   @db.VarChar(255)
+  region      String?  @db.VarChar(100)
+  hp          String   @db.VarChar(50)
+  latitude    Float?
+  longitude   Float?
+  kebutuhan   String   @db.Text
+  status      String   @default("Open") @db.VarChar(20) // Open | Close
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sos_messages")
+}
+
 model ProspectiveMember {
   id               String    @id @default(cuid())
   namaLengkap      String    @db.VarChar(255)
