@@ -29,12 +29,19 @@ export async function GET() {
   })
 
   if (!participation) {
-    // Auto-join ke group chat
+    // Auto-join ke group chat + set lastReadAt agar tidak dihitung sebagai unread
     await prisma.conversationParticipant.create({
       data: {
         conversationId: groupChat.id,
         memberId: session.memberId!,
+        lastReadAt: new Date(),
       },
+    })
+  } else {
+    // Update lastReadAt saat member membuka group chat
+    await prisma.conversationParticipant.update({
+      where: { id: participation.id },
+      data: { lastReadAt: new Date() },
     })
   }
 

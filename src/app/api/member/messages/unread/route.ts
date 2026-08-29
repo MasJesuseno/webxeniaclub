@@ -34,11 +34,12 @@ export async function GET() {
   let latestTime: Date | null = null
 
   for (const p of participations) {
-    // Hitung unread messages
+    // Hitung unread messages (exclude soft-deleted)
     const allUnread = await prisma.message.findMany({
       where: {
         conversationId: p.conversationId,
         senderId: { not: session.memberId! },
+        isDeleted: false,
         createdAt: p.lastReadAt ? { gt: p.lastReadAt } : undefined,
       },
       select: { id: true, createdAt: true },
