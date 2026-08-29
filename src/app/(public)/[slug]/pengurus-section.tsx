@@ -43,7 +43,7 @@ export function PengurusSection({ pengurus }: { pengurus: PengurusItem[] }) {
                 <p className="text-base font-bold text-gray-900">{item.nama}</p>
                 <p className="text-sm text-red-600 font-semibold">{item.jabatan}</p>
                 {item.tentang && (
-                  <p className="text-sm text-gray-500 mt-2 leading-relaxed">{item.tentang}</p>
+                  <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">{item.tentang}</p>
                 )}
               </div>
             </div>
