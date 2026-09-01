@@ -176,6 +176,10 @@ export function RegistrationDataManager({
     setCardModalState({ memberId, registrationPeriodId, download: false })
   }
 
+  function handleDownloadCard(memberId: string, registrationPeriodId: string) {
+    setCardModalState({ memberId, registrationPeriodId, download: true })
+  }
+
   // Compute auto-filled biaya from selected period
   const getBiayaByPeriod = (periodId: string) => {
     const p = periods.find((p) => p.id === periodId)
@@ -841,6 +845,21 @@ export function RegistrationDataManager({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
+                        {/* Download Kartu — only active if Lunas AND RegisLang = Ya */}
+                        <button
+                          onClick={() => item.memberId && handleDownloadCard(item.memberId, item.registrationPeriodId)}
+                          disabled={item.status !== "Lunas" || !item.memberId || item.registrationPeriod?.regisLang !== "Ya"}
+                          className={`p-2 rounded-lg transition-all ${
+                            item.status === "Lunas" && item.memberId && item.registrationPeriod?.regisLang === "Ya"
+                              ? "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                              : "text-gray-300 cursor-not-allowed"
+                          }`}
+                          title={item.status === "Lunas" ? "Download Kartu" : "Status belum Lunas"}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
                         {/* Edit */}
                         <button
                           onClick={() => {
@@ -1141,19 +1160,13 @@ export function RegistrationDataManager({
                 profileUrl={cardMember.memberId ? `${baseUrl}/p/${cardMember.memberId}` : null}
               />
             </div>
-            {/* Tombol Download di dalam modal */}
+            {/* Tombol Tutup di dalam modal */}
             <div className="flex gap-2 mt-4">
               <button
                 onClick={() => setCardModalState(null)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
               >
                 Tutup
-              </button>
-              <button
-                onClick={() => setCardModalState((prev) => prev ? { ...prev, download: true } : null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
-              >
-                Download
               </button>
             </div>
             {cardModalState.download && <CardDownloader memberId={cardModalState.memberId} onDone={() => setCardModalState(null)} />}
