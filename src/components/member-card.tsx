@@ -387,10 +387,10 @@ export function MemberCard({
 
         .expiry {
           color: #bbb;
-          font-size: 10px;
+          font-size: 13px;
           font-weight: 800;
           letter-spacing: 0.4px;
-          margin-left: 16px;
+          margin-left: 40px;
           white-space: nowrap;
         }
 
