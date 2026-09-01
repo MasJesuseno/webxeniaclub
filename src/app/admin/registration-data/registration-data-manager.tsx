@@ -167,13 +167,13 @@ export function RegistrationDataManager({
   // Get masa berlaku from tanggalBerlaku of the selected period
   const cardMasaBerlaku = cardModalState
     ? (() => {
-        const period = periods.find((p) => p.id === cardModalState.registrationPeriodId)
-        return period?.tanggalBerlaku ? new Date(period.tanggalBerlaku).toISOString() : cardMember?.masaBerlaku ?? null
+        // Masa Berlaku: prioritaskan dari Data Member (sudah tersinkron dari batasAkhir periode saat status Lunas)
+        return cardMember?.masaBerlaku ?? null
       })()
     : null
 
-  function handleDownloadCard(memberId: string, registrationPeriodId: string) {
-    setCardModalState({ memberId, registrationPeriodId, download: true })
+  function handleViewCard(memberId: string, registrationPeriodId: string) {
+    setCardModalState({ memberId, registrationPeriodId, download: false })
   }
 
   // Compute auto-filled biaya from selected period
@@ -825,19 +825,20 @@ export function RegistrationDataManager({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
                           </svg>
                         </button>
-                        {/* Download Kartu — only active if Lunas AND RegisLang = Ya */}
+                        {/* Lihat Kartu — only active if Lunas AND RegisLang = Ya */}
                         <button
-                          onClick={() => item.memberId && handleDownloadCard(item.memberId, item.registrationPeriodId)}
+                          onClick={() => item.memberId && handleViewCard(item.memberId, item.registrationPeriodId)}
                           disabled={item.status !== "Lunas" || !item.memberId || item.registrationPeriod?.regisLang !== "Ya"}
                           className={`p-2 rounded-lg transition-all ${
                             item.status === "Lunas" && item.memberId && item.registrationPeriod?.regisLang === "Ya"
                               ? "text-gray-400 hover:text-green-600 hover:bg-green-50"
                               : "text-gray-300 cursor-not-allowed"
                           }`}
-                          title={item.status === "Lunas" ? "Download Kartu" : "Status belum Lunas"}
+                          title={item.status === "Lunas" ? "Lihat Kartu" : "Status belum Lunas"}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
                         {/* Edit */}
@@ -1139,6 +1140,21 @@ export function RegistrationDataManager({
                 cardTemplateBack={siteProfile.cardTemplateBack}
                 profileUrl={cardMember.memberId ? `${baseUrl}/p/${cardMember.memberId}` : null}
               />
+            </div>
+            {/* Tombol Download di dalam modal */}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setCardModalState(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Tutup
+              </button>
+              <button
+                onClick={() => setCardModalState((prev) => prev ? { ...prev, download: true } : null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
+              >
+                Download
+              </button>
             </div>
             {cardModalState.download && <CardDownloader memberId={cardModalState.memberId} onDone={() => setCardModalState(null)} />}
           </div>

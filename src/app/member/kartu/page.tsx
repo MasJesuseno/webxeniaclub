@@ -36,14 +36,15 @@ export default async function MemberKartuPage({
       },
     })
 
-    const tanggalBerlakuList = lunasData
+    // Fallback: ambil Batas Akhir dari periode tagihan Lunas terbaru dengan regisLang = "Ya"
+    const batasAkhirList = lunasData
       .filter((d) => d.registrationPeriod.regisLang === "Ya")
-      .map((d) => d.registrationPeriod.tanggalBerlaku)
+      .map((d) => d.registrationPeriod.batasAkhir)
       .filter((d): d is Date => !!d)
 
-    if (tanggalBerlakuList.length > 0) {
-      // Ambil tanggal berlaku terbaru (sort date)
-      const latest = new Date(Math.max(...tanggalBerlakuList.map((d) => d.getTime())))
+    if (batasAkhirList.length > 0) {
+      // Ambil batas akhir terbaru (sort date)
+      const latest = new Date(Math.max(...batasAkhirList.map((d) => d.getTime())))
       cardMasaBerlaku = latest.toISOString()
     }
   }
