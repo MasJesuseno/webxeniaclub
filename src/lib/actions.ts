@@ -1424,19 +1424,19 @@ export async function updateRegistrationData(id: string, formData: FormData) {
   })
 
   // Jika regisLang = Ya dan status Lunas → edit Data Member: isi Masa Berlaku
-  // dengan Tanggal Berlaku dari Periode Register yang dipilih.
+  // dengan Batas Akhir dari Periode Register yang dipilih.
   const finalStatus = status || "Belum"
   if (finalStatus === "Lunas") {
     try {
       const period = await prisma.registrationPeriod.findUnique({
         where: { id: registrationPeriodId },
-        select: { regisLang: true, tanggalBerlaku: true },
+        select: { regisLang: true, batasAkhir: true },
       })
-      if (period?.regisLang === "Ya" && period.tanggalBerlaku && memberId) {
+      if (period?.regisLang === "Ya" && period.batasAkhir && memberId) {
         const result = await prisma.prospectiveMember.updateMany({
           // Cocokkan via memberId (mis. "1795") ATAU id internal (cuid) bila member belum punya memberId
           where: { OR: [{ memberId }, { id: memberId }] },
-          data: { masaBerlaku: period.tanggalBerlaku },
+          data: { masaBerlaku: period.batasAkhir },
         })
         if (result.count === 0) {
           console.warn(`updateRegistrationData: member dengan memberId \"${memberId}\" tidak ditemukan — masa berlaku tidak disinkronkan`)
