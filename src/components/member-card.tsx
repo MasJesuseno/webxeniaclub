@@ -314,7 +314,7 @@ export function MemberCard({
           flex-shrink: 0;
           position: relative;
           z-index: 1;
-          margin-top: 170px;
+          margin-top: 183px;
           margin-left: -4px;
         }
 
@@ -356,7 +356,7 @@ export function MemberCard({
           justify-content: space-between;
           align-items: center;
           width: 75%;
-          margin-top: 15px;
+          margin-top: 25px;
           flex-shrink: 0;
           position: relative;
           z-index: 1;
