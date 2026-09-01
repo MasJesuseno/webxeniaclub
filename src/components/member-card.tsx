@@ -374,7 +374,7 @@ export function MemberCard({
           width: 40px;
           height: 40px;
           flex-shrink: 0;
-          margin-left: 51px;
+          margin-left: 55px;
           position: relative;
           top: -4px;
         }
@@ -390,7 +390,7 @@ export function MemberCard({
           font-size: 13px;
           font-weight: 800;
           letter-spacing: 0.4px;
-          margin-left: 40px;
+          margin-left: 32px;
           white-space: nowrap;
         }
 
@@ -498,7 +498,7 @@ export function MemberCard({
           .qr-in-row {
             width: 7mm;
             height: 7mm;
-            margin-left: 11.5mm;
+            margin-left: 12.5mm;
           }
 
           .expiry {
