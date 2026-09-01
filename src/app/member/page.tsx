@@ -44,6 +44,10 @@ interface MemberData {
   isOnline: boolean
   tagihanCount: number
   pendingCount: number
+  lunasCount: number
+  totalBiaya: number
+  totalBiayaLunas: number
+  totalBiayaBelum: number
 }
 
 export default function MemberProfilePage() {
@@ -222,14 +226,18 @@ export default function MemberProfilePage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-gray-900">{member.tagihanCount}</p>
-          <p className="text-xs text-gray-500">Total Tagihan</p>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          <p className="text-lg font-bold text-gray-900">{member.tagihanCount} Tagihan</p>
+          <p className="text-[10px] text-gray-500">Rp {(member.totalBiaya || 0).toLocaleString("id-ID")}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <p className="text-2xl font-bold text-amber-600">{member.pendingCount}</p>
-          <p className="text-xs text-gray-500">Belum Lunas</p>
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          <p className="text-lg font-bold text-green-600">{member.lunasCount || 0} Lunas</p>
+          <p className="text-[10px] text-gray-500">Rp {(member.totalBiayaLunas || 0).toLocaleString("id-ID")}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          <p className="text-lg font-bold text-amber-600">{member.pendingCount} Belum</p>
+          <p className="text-[10px] text-gray-500">Rp {(member.totalBiayaBelum || 0).toLocaleString("id-ID")}</p>
         </div>
       </div>
 

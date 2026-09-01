@@ -27,6 +27,37 @@ export async function GET() {
       },
     })
 
+    const lunasCount = await prisma.registrationData.count({
+      where: {
+        memberId: member.memberId,
+        status: "Lunas",
+      },
+    })
+
+    // Hitung total biaya
+    const allTagihan = await prisma.registrationData.findMany({
+      where: {
+        memberId: member.memberId,
+      },
+      include: {
+        registrationPeriod: {
+          select: { biaya: true },
+        },
+      },
+    })
+
+    const totalBiaya = allTagihan.reduce(
+      (sum, item) => sum + (item.biaya || item.registrationPeriod?.biaya || 0),
+      0
+    )
+    const totalBiayaLunas = allTagihan
+      .filter((item) => item.status === "Lunas")
+      .reduce(
+        (sum, item) => sum + (item.biaya || item.registrationPeriod?.biaya || 0),
+        0
+      )
+    const totalBiayaBelum = totalBiaya - totalBiayaLunas
+
     return NextResponse.json({
       id: member.id,
       memberId: member.memberId,
@@ -59,6 +90,10 @@ export async function GET() {
       isOnline: member.isOnline,
       tagihanCount,
       pendingCount,
+      lunasCount,
+      totalBiaya,
+      totalBiayaLunas,
+      totalBiayaBelum,
     })
   } catch (error) {
     console.error("Member me error:", error)
