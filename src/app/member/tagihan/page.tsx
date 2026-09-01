@@ -193,9 +193,35 @@ export default function MemberTagihanPage() {
     return styles[status] || "bg-gray-100 text-gray-600"
   }
 
+  // Hitung ringkasan tagihan
+  const totalTagihan = tagihan.length
+  const jumlahLunas = tagihan.filter((item) => item.status === "Lunas").length
+  const belumLunas = tagihan.filter((item) => item.status !== "Lunas").length
+  const totalBiaya = tagihan.reduce((sum, item) => sum + (item.biaya || item.registrationPeriod?.biaya || 0), 0)
+  const totalBiayaLunas = tagihan
+    .filter((item) => item.status === "Lunas")
+    .reduce((sum, item) => sum + (item.biaya || item.registrationPeriod?.biaya || 0), 0)
+  const totalBiayaBelum = totalBiaya - totalBiayaLunas
+
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-bold text-gray-900">Tagihan Saya</h1>
+
+      {/* Ringkasan Tagihan */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          <p className="text-lg font-bold text-gray-900">{totalTagihan} Tagihan</p>
+          <p className="text-[10px] text-gray-500">Rp {totalBiaya.toLocaleString("id-ID")}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          <p className="text-lg font-bold text-green-600">{jumlahLunas} Lunas</p>
+          <p className="text-[10px] text-gray-500">Rp {totalBiayaLunas.toLocaleString("id-ID")}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          <p className="text-lg font-bold text-amber-600">{belumLunas} Belum</p>
+          <p className="text-[10px] text-gray-500">Rp {totalBiayaBelum.toLocaleString("id-ID")}</p>
+        </div>
+      </div>
 
       {/* Bank Info Card */}
       {bank?.name && bank?.account && (
