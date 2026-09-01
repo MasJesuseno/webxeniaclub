@@ -390,7 +390,7 @@ export function MemberCard({
           font-size: 10px;
           font-weight: 800;
           letter-spacing: 0.4px;
-          margin-left: 12px;
+          margin-left: 32px;
           white-space: nowrap;
           overflow: hidden;
         }
@@ -507,7 +507,7 @@ export function MemberCard({
             letter-spacing: 0.1mm;
             color: #aaa;
             font-weight: 800;
-            margin-left: 3mm;
+            margin-left: 7mm;
           }
 
           nav, .no-print, button, header, footer {
