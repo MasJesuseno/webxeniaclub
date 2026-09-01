@@ -367,6 +367,7 @@ export function MemberCard({
           font-size: 13px;
           font-weight: 800;
           letter-spacing: 1px;
+          margin-left: -12px;
         }
 
         .qr-in-row {
@@ -492,6 +493,7 @@ export function MemberCard({
             letter-spacing: 0.2mm;
             color: #aaa;
             font-weight: 800;
+            margin-left: -2mm;
           }
 
           .qr-in-row {
