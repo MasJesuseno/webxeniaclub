@@ -390,9 +390,8 @@ export function MemberCard({
           font-size: 10px;
           font-weight: 800;
           letter-spacing: 0.4px;
-          margin-left: 32px;
+          margin-left: 16px;
           white-space: nowrap;
-          overflow: hidden;
         }
 
         /* ===== PRINT STYLES ===== */
