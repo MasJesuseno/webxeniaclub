@@ -131,7 +131,16 @@ export default function MemberProfilePage() {
       })
 
       if (res.ok) {
-        setSaveMsg("Profil berhasil diperbarui!")
+        // Jika password diubah, hapus "Ingat Password" dari localStorage
+        // agar auto-login tidak mencoba password lama
+        if (data.password) {
+          try {
+            localStorage.removeItem("member_remembered_credentials")
+          } catch {}
+          setSaveMsg("Profil & password berhasil diperbarui! Silakan login kembali dengan password baru.")
+        } else {
+          setSaveMsg("Profil berhasil diperbarui!")
+        }
         setEditMode(false)
         fetchProfile()
       } else {

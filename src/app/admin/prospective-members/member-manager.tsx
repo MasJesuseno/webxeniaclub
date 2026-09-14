@@ -63,6 +63,7 @@ const MEMBER_STATUS_STYLES: Record<string, string> = {
   Aktif: "bg-green-100 text-green-800 border-green-200",
   "Tidak Aktif": "bg-gray-100 text-gray-800 border-gray-200",
   "Black List": "bg-red-100 text-red-800 border-red-200",
+  Meninggal: "bg-purple-100 text-purple-800 border-purple-200",
 }
 
 const TEMPLATE_HEADERS = [
@@ -792,6 +793,7 @@ export function MemberManager({ members, siteProfile }: { members: ProspectiveMe
                   <option value="Aktif">Aktif</option>
                   <option value="Tidak Aktif">Tidak Aktif</option>
                   <option value="Black List">Black List</option>
+                  <option value="Meninggal">Meninggal</option>
                 </select>
               </div>
               <div>

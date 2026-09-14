@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { MemberGPS } from "@/components/member-gps"
 
@@ -56,7 +56,7 @@ export default function MemberLoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [memberId, setMemberId] = useState("")
   const [password, setPassword] = useState("")
-  const autoLoginAttempted = useRef(false)
+
 
   useEffect(() => {
     fetch("/api/logo")
@@ -69,40 +69,13 @@ export default function MemberLoginPage() {
 
     ;(async () => {
       // Muat kredensial tersimpan & isi otomatis form
+      // (hanya pre-fill, TIDAK login otomatis agar tidak ganggu
+      //  jika password baru saja diubah)
       const remembered = loadRememberedCredentials()
       if (!remembered) return
       setRememberMe(true)
       setMemberId(remembered.memberId)
       setPassword(remembered.password)
-
-      // Login otomatis — kecuali user baru saja logout di tab ini
-      if (autoLoginAttempted.current) return
-      autoLoginAttempted.current = true
-      try {
-        if (sessionStorage.getItem(LOGOUT_FLAG_KEY) === "1") return
-      } catch {
-        // ignore
-      }
-
-      setLoading(true)
-      try {
-        const res = await fetch("/api/member/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ memberId: remembered.memberId, password: remembered.password }),
-        })
-        const data = await res.json()
-        if (res.ok) {
-          router.push("/member")
-          router.refresh()
-          return
-        }
-        setError(data.error || "Login gagal")
-      } catch {
-        setError("Terjadi kesalahan saat login otomatis")
-      } finally {
-        setLoading(false)
-      }
     })()
   }, [router])
 
@@ -293,7 +266,12 @@ export default function MemberLoginPage() {
         </form>
 
         {/* Additional Info */}
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
+          <p>
+            <a href="/member/forgot-password" className="text-sm text-red-600 hover:underline font-medium">
+              Lupa Password?
+            </a>
+          </p>
           <p className="text-xs text-gray-400">
             Belum punya akun?{" "}
             <a href="/" className="text-red-600 hover:underline font-medium">

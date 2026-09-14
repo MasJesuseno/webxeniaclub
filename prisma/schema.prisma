@@ -480,6 +480,8 @@ model ProspectiveMember {
   lastLocationLabel String?  @db.Text
   isOnline         Boolean   @default(false)
   canUpdateKegiatan Boolean  @default(false)
+  resetToken       String?   @db.VarChar(255)
+  resetTokenExpiry DateTime?
 
 }
 

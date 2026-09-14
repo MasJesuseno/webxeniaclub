@@ -23,8 +23,9 @@ export async function proxy(request: NextRequest) {
 
   // Protect /member routes with member auth (check cookie and verify token)
   if (pathname.startsWith("/member")) {
-    // Allow access to login page
-    if (pathname === "/member/login") {
+    // Allow access to public member pages (no auth needed)
+    const publicMemberPaths = ["/member/login", "/member/forgot-password"]
+    if (publicMemberPaths.includes(pathname)) {
       return NextResponse.next()
     }
 

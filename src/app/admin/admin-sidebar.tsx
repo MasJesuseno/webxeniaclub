@@ -23,6 +23,22 @@ export function AdminSidebar({ user }: { user: AdminUser }) {
   // Tampilkan hanya menu yang diizinkan untuk role user (RBAC)
   const visibleMenu = filterMenuByPermissions(user.permissions || [])
 
+  // Tentukan item menu mana yang paling cocok (prefix terpanjang).
+  // Ini mencegah item induk (mis. Data Register) ikut highlighted
+  // saat sub-halaman (mis. Rekap Register) sedang aktif.
+  let bestMatchHref: string | null = null
+  for (const section of visibleMenu) {
+    for (const item of section.items) {
+      const isExact = pathname === item.href
+      const isPrefix = item.href !== "/admin" && pathname.startsWith(item.href + "/")
+      if (isExact || isPrefix) {
+        if (!bestMatchHref || item.href.length > bestMatchHref.length) {
+          bestMatchHref = item.href
+        }
+      }
+    }
+  }
+
   return (
     <>
       {/* Mobile toggle */}
@@ -63,7 +79,7 @@ export function AdminSidebar({ user }: { user: AdminUser }) {
                 </p>
                 <div className="space-y-0.5">
                   {section.items.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+                    const isActive = item.href === bestMatchHref
                     return (
                       <Link
                         key={item.href}
