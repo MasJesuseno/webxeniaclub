@@ -21,6 +21,7 @@ interface MemberCardProps {
   showBack?: boolean
   autoPrint?: boolean
   downloadImage?: boolean
+  compact?: boolean
 }
 
 export function MemberCard({
@@ -36,6 +37,7 @@ export function MemberCard({
   showBack,
   autoPrint,
   downloadImage,
+  compact,
 }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const cardInnerRef = useRef<HTMLDivElement>(null)
@@ -112,7 +114,7 @@ export function MemberCard({
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = `Kartu_Anggota_${member.memberId || "DXIC"}.png`
+        a.download = `Kartu_Anggota_${member.memberId || "DXIC"}${showBack ? "_Belakang" : "_Depan"}.png`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
@@ -137,22 +139,44 @@ export function MemberCard({
 
   return (
     <>
-      <div ref={cardRef} className="member-card-wrapper">
+      <div ref={cardRef} className={`member-card-wrapper ${compact ? 'member-card-compact' : ''}`}>
         <div
           ref={cardInnerRef}
           className={`member-card ${showBack ? 'member-card-back' : ''}`}
-          style={showBack && cardTemplateBack ? backBgStyle : cardTemplateFront ? frontBgStyle : {}}
+          style={showBack ? (cardTemplateBack ? backBgStyle : {}) : (cardTemplateFront ? frontBgStyle : {})}
         >
           {showBack ? (
-            /* ===== BACK SIDE — hanya background template ===== */
-            <></>
+            /* ===== BACK SIDE ===== */
+            cardTemplateBack ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cardTemplateBack}
+                alt="Template Kartu Belakang"
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-[14px]"
+                crossOrigin="anonymous"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <span className="text-xl font-bold text-white tracking-widest">{shortName || "DXIC"}</span>
+                <span className="text-xs text-gray-400 mt-1">{clubName || "Xenia Club Indonesia"}</span>
+              </div>
+            )
           ) : (
             /* ===== FRONT SIDE ===== */
             <>
+              {cardTemplateFront && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={cardTemplateFront}
+                  alt="Template Kartu Depan"
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-[14px]"
+                  crossOrigin="anonymous"
+                />
+              )}
               {/* Member Photo */}
               <div className="photo-area">
                 {member.foto ? (
-                  <img src={member.foto} alt={displayName} className="photo-img" />
+                  <img src={member.foto} alt={displayName} className="photo-img" crossOrigin="anonymous" />
                 ) : (
                   <div className="photo-fallback">{initial}</div>
                 )}
@@ -193,9 +217,16 @@ export function MemberCard({
           padding: 20px;
         }
 
+        .member-card-wrapper.member-card-compact {
+          min-height: auto;
+          background: transparent;
+          padding: 0;
+        }
+
         /* ===== CARD BASE ===== */
         .member-card {
           width: 320px;
+          height: 507px;
           aspect-ratio: 53.98 / 85.60;
           background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
           border-radius: 14px;

@@ -62,36 +62,6 @@ const STATUS_DOT: Record<string, string> = {
   "Lunas": "bg-emerald-500",
 }
 
-// Auto-download component — captures card as PNG on mount
-function CardDownloader({ memberId, onDone }: { memberId: string; onDone: () => void }) {
-  useEffect(() => {
-    async function download() {
-      const el = document.querySelector(".member-card-wrapper")
-      if (!el) {
-        onDone()
-        return
-      }
-      try {
-        const html2canvas = (await import("html2canvas")).default
-        const canvas = await html2canvas(el as HTMLElement, {
-          scale: 3,
-          useCORS: true,
-          backgroundColor: "#111111",
-        })
-        const link = document.createElement("a")
-        link.download = `Kartu_Member_${memberId}.png`
-        link.href = canvas.toDataURL("image/png")
-        link.click()
-      } catch (err) {
-        console.error("Download card error:", err)
-      }
-      onDone()
-    }
-    const timer = setTimeout(download, 300)
-    return () => clearTimeout(timer)
-  }, [memberId, onDone])
-  return null
-}
 
 export function RegistrationDataManager({
   data,
@@ -149,9 +119,17 @@ export function RegistrationDataManager({
     setBulkLoading(false)
   }
 
-  // Card preview modal
-  const [cardModalState, setCardModalState] = useState<{ memberId: string; registrationPeriodId: string; download: boolean } | null>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
+  // Card preview & download modal
+  const [cardModalState, setCardModalState] = useState<{
+    memberId: string
+    registrationPeriodId: string
+    actionType: "download" | "view"
+  } | null>(null)
+  const [cardTab, setCardTab] = useState<"both" | "front" | "back">("both")
+  const [downloadingSide, setDownloadingSide] = useState<"front" | "back" | "both" | "merged" | null>(null)
+
+  const frontCardRef = useRef<HTMLDivElement>(null)
+  const backCardRef = useRef<HTMLDivElement>(null)
 
   // Bukti transfer preview modal
   const [proofModalState, setProofModalState] = useState<{ memberId: string; namaMember: string; fotoBukti: string } | null>(null)
@@ -159,38 +137,6 @@ export function RegistrationDataManager({
   // Determine base URL for QR code
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://xeniaclub.or.id"
 
-  // Find full member data for card modal
-  const cardMember = cardModalState
-    ? members.find((m) => m.memberId === cardModalState.memberId) ?? null
-    : null
-
-  // Get masa berlaku from tanggalBerlaku of the selected period
-  const cardMasaBerlaku = cardModalState
-    ? (() => {
-        // Masa Berlaku: prioritaskan dari Data Member (sudah tersinkron dari batasAkhir periode saat status Lunas)
-        return cardMember?.masaBerlaku ?? null
-      })()
-    : null
-
-  function handleViewCard(memberId: string, registrationPeriodId: string) {
-    setCardModalState({ memberId, registrationPeriodId, download: false })
-  }
-
-  function handleDownloadCard(memberId: string, registrationPeriodId: string) {
-    setCardModalState({ memberId, registrationPeriodId, download: true })
-  }
-
-  // Compute auto-filled biaya from selected period
-  const getBiayaByPeriod = (periodId: string) => {
-    const p = periods.find((p) => p.id === periodId)
-    return p?.biaya ?? null
-  }
-
-  // Compute auto-filled nama from selected member
-  const getNamaByMember = (memberId: string) => {
-    const m = members.find((m) => m.memberId === memberId || m.id === memberId)
-    return m?.namaLengkap ?? ""
-  }
 
   // Region lookup: map memberId/id → region from the member list
   const memberRegionMap = useMemo(() => {
@@ -206,6 +152,233 @@ export function RegistrationDataManager({
     if (!item.memberId) return null
     return memberRegionMap.get(item.memberId) || null
   }
+
+  // Fallback site profile in case it is null
+  const effectiveSiteProfile = useMemo(() => {
+    return siteProfile || {
+      clubName: "Xenia Club Indonesia",
+      shortName: "DXIC",
+      slogan: "Xenia Menyatukan Kita",
+      logo: null,
+      favicon: null,
+      cardTemplateFront: null,
+      cardTemplateBack: null,
+    }
+  }, [siteProfile])
+
+  // Find full member data for card modal with robust fallback
+  const cardMember = useMemo(() => {
+    if (!cardModalState) return null
+    const targetId = (cardModalState.memberId || "").trim().toLowerCase()
+    const found = members.find((m) => {
+      const mid = (m.memberId || "").trim().toLowerCase()
+      const id = (m.id || "").trim().toLowerCase()
+      return (mid && mid === targetId) || (id && id === targetId)
+    })
+    if (found) return found
+
+    // Fallback if not found in prospectiveMember table: construct basic member object from registration data
+    const regItem = data.find((d) => (d.memberId || "").trim().toLowerCase() === targetId)
+    return {
+      id: cardModalState.memberId || "member",
+      memberId: cardModalState.memberId || null,
+      namaLengkap: regItem?.namaMember || cardModalState.memberId || "Member",
+      namaPanggilan: null,
+      foto: null,
+      masaBerlaku: null,
+      region: regItem ? getRegionByItem(regItem) : null,
+    }
+  }, [cardModalState, members, data, memberRegionMap])
+
+  // Find registration period for card modal
+  const cardPeriod = cardModalState
+    ? periods.find((p) => p.id === cardModalState.registrationPeriodId) ?? null
+    : null
+
+  // Find registration item for card modal
+  const cardRegItem = cardModalState
+    ? data.find((d) => d.memberId === cardModalState.memberId && d.registrationPeriodId === cardModalState.registrationPeriodId) ?? null
+    : null
+
+  // Get masa berlaku from member or fallback to period
+  const cardMasaBerlaku = cardModalState
+    ? (() => {
+        if (cardMember?.masaBerlaku) return cardMember.masaBerlaku
+        return cardPeriod?.batasAkhir || cardPeriod?.tanggalBerlaku || null
+      })()
+    : null
+
+  function handleViewCard(memberId: string, registrationPeriodId: string) {
+    setCardTab("both")
+    setCardModalState({ memberId, registrationPeriodId, actionType: "view" })
+  }
+
+  function handleDownloadCard(memberId: string, registrationPeriodId: string) {
+    setCardTab("both")
+    setCardModalState({ memberId, registrationPeriodId, actionType: "download" })
+  }
+
+  async function captureCardCanvas(side: "front" | "back"): Promise<HTMLCanvasElement | null> {
+    const container = side === "front" ? frontCardRef.current : backCardRef.current
+    if (!container) return null
+
+    const target = (container.querySelector(".member-card") as HTMLElement) || container
+
+    try {
+      const html2canvas = (await import("html2canvas")).default
+      // Target: 300 DPI at 53.98mm width (credit card size)
+      const targetWidthPx = Math.round((53.98 / 25.4) * 300)
+      const scale = targetWidthPx / 320
+
+      const canvas = await html2canvas(target, {
+        scale: scale,
+        useCORS: true,
+        logging: false,
+        backgroundColor: null,
+        width: 320,
+        height: 507,
+      })
+      return canvas
+    } catch (err) {
+      console.error(`Capture ${side} card error:`, err)
+      return null
+    }
+  }
+
+  async function handleDownloadFront() {
+    if (!cardMember) return
+    setDownloadingSide("front")
+    try {
+      const canvas = await captureCardCanvas("front")
+      if (canvas) {
+        const link = document.createElement("a")
+        link.download = `Kartu_Member_${cardMember.memberId || "DXIC"}_Depan.png`
+        link.href = canvas.toDataURL("image/png")
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    } finally {
+      setDownloadingSide(null)
+    }
+  }
+
+  async function handleDownloadBack() {
+    if (!cardMember) return
+    setDownloadingSide("back")
+    try {
+      const canvas = await captureCardCanvas("back")
+      if (canvas) {
+        const link = document.createElement("a")
+        link.download = `Kartu_Member_${cardMember.memberId || "DXIC"}_Belakang.png`
+        link.href = canvas.toDataURL("image/png")
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    } finally {
+      setDownloadingSide(null)
+    }
+  }
+
+  // 1 Single PNG containing BOTH Front and Back side-by-side (Never blocked by browser!)
+  async function handleDownloadMerged() {
+    if (!cardMember) return
+    setDownloadingSide("merged")
+    const prevTab = cardTab
+    if (prevTab !== "both") {
+      setCardTab("both")
+      await new Promise((r) => setTimeout(r, 200))
+    }
+
+    try {
+      const [frontCanvas, backCanvas] = await Promise.all([
+        captureCardCanvas("front"),
+        captureCardCanvas("back"),
+      ])
+
+      if (!frontCanvas || !backCanvas) {
+        alert("Gagal merender kartu. Silakan coba kembali.")
+        return
+      }
+
+      const gap = 30
+      const mergedCanvas = document.createElement("canvas")
+      mergedCanvas.width = frontCanvas.width + backCanvas.width + gap
+      mergedCanvas.height = Math.max(frontCanvas.height, backCanvas.height)
+
+      const ctx = mergedCanvas.getContext("2d")
+      if (ctx) {
+        ctx.drawImage(frontCanvas, 0, 0)
+        ctx.drawImage(backCanvas, frontCanvas.width + gap, 0)
+
+        const link = document.createElement("a")
+        link.download = `Kartu_Member_${cardMember.memberId || "DXIC"}_Lengkap_Depan_Belakang.png`
+        link.href = mergedCanvas.toDataURL("image/png")
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    } catch (err) {
+      console.error("Merged download error:", err)
+    } finally {
+      if (prevTab !== "both") setCardTab(prevTab)
+      setDownloadingSide(null)
+    }
+  }
+
+  // Download both as 2 separate PNG files
+  async function handleDownloadBothSeparately() {
+    if (!cardMember) return
+    setDownloadingSide("both")
+    const prevTab = cardTab
+    if (prevTab !== "both") {
+      setCardTab("both")
+      await new Promise((r) => setTimeout(r, 200))
+    }
+
+    try {
+      const frontCanvas = await captureCardCanvas("front")
+      if (frontCanvas) {
+        const link1 = document.createElement("a")
+        link1.download = `Kartu_Member_${cardMember.memberId || "DXIC"}_Depan.png`
+        link1.href = frontCanvas.toDataURL("image/png")
+        document.body.appendChild(link1)
+        link1.click()
+        document.body.removeChild(link1)
+      }
+
+      await new Promise((r) => setTimeout(r, 600))
+
+      const backCanvas = await captureCardCanvas("back")
+      if (backCanvas) {
+        const link2 = document.createElement("a")
+        link2.download = `Kartu_Member_${cardMember.memberId || "DXIC"}_Belakang.png`
+        link2.href = backCanvas.toDataURL("image/png")
+        document.body.appendChild(link2)
+        link2.click()
+        document.body.removeChild(link2)
+      }
+    } catch (err) {
+      console.error("Separate download error:", err)
+    } finally {
+      if (prevTab !== "both") setCardTab(prevTab)
+      setDownloadingSide(null)
+    }
+  }
+
+  // Compute auto-filled biaya from selected period
+  const getBiayaByPeriod = (periodId: string) => {
+    const p = periods.find((p) => p.id === periodId)
+    return p?.biaya ?? null
+  }
+
+  // Compute auto-filled nama from selected member
+  const getNamaByMember = (memberId: string) => {
+    const m = members.find((m) => m.memberId === memberId || m.id === memberId)
+    return m?.namaLengkap ?? ""
+  }
+
 
   // Unique region list for the filter dropdown
   const regionOptions = useMemo(() => {
@@ -829,32 +1002,24 @@ export function RegistrationDataManager({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
                           </svg>
                         </button>
-                        {/* Lihat Kartu — only active if Lunas AND RegisLang = Ya */}
+                        {/* Lihat Kartu */}
                         <button
-                          onClick={() => item.memberId && handleViewCard(item.memberId, item.registrationPeriodId)}
-                          disabled={item.status !== "Lunas" || !item.memberId || item.registrationPeriod?.regisLang !== "Ya"}
-                          className={`p-2 rounded-lg transition-all ${
-                            item.status === "Lunas" && item.memberId && item.registrationPeriod?.regisLang === "Ya"
-                              ? "text-gray-400 hover:text-green-600 hover:bg-green-50"
-                              : "text-gray-300 cursor-not-allowed"
-                          }`}
-                          title={item.status === "Lunas" ? "Lihat Kartu" : "Status belum Lunas"}
+                          type="button"
+                          onClick={() => handleViewCard(item.memberId || "", item.registrationPeriodId)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all"
+                          title="Lihat Kartu (Depan & Belakang)"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
-                        {/* Download Kartu — only active if Lunas AND RegisLang = Ya */}
+                        {/* Download Kartu */}
                         <button
-                          onClick={() => item.memberId && handleDownloadCard(item.memberId, item.registrationPeriodId)}
-                          disabled={item.status !== "Lunas" || !item.memberId || item.registrationPeriod?.regisLang !== "Ya"}
-                          className={`p-2 rounded-lg transition-all ${
-                            item.status === "Lunas" && item.memberId && item.registrationPeriod?.regisLang === "Ya"
-                              ? "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                              : "text-gray-300 cursor-not-allowed"
-                          }`}
-                          title={item.status === "Lunas" ? "Download Kartu" : "Status belum Lunas"}
+                          type="button"
+                          onClick={() => handleDownloadCard(item.memberId || "", item.registrationPeriodId)}
+                          className="p-2 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all font-medium"
+                          title="Download Kartu (Depan & Belakang)"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -1120,56 +1285,296 @@ export function RegistrationDataManager({
         </div>
       )}
 
-      {/* Card Preview Modal */}
-      {cardModalState && cardMember && siteProfile && (
+      {/* Card Preview & Download Modal */}
+      {cardModalState && cardMember && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setCardModalState(null)}
         >
           <div
-            className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200 w-full max-w-md"
+            className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200 w-full max-w-4xl max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Kartu Member</h3>
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-gray-100 gap-4">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {cardModalState.actionType === "download" ? "Download Kartu Member" : "Kartu Member"}
+                  </h3>
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700">
+                    {cardMember.memberId || "Member"}
+                  </span>
+                  {cardRegItem && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                        STATUS_BADGE[cardRegItem.status] || "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          STATUS_DOT[cardRegItem.status] || "bg-gray-400"
+                        }`}
+                      />
+                      {cardRegItem.status}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  <span className="font-semibold text-gray-700">{cardMember.namaLengkap}</span>
+                  {cardPeriod?.period && <> &bull; Periode: <span className="font-medium text-gray-700">{cardPeriod.period}</span></>}
+                </p>
+              </div>
+
               <button
                 onClick={() => setCardModalState(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Tutup"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div ref={cardRef}>
-              <MemberCard
-                member={{
-                  namaPanggilan: cardMember.namaPanggilan,
-                  namaLengkap: cardMember.namaLengkap,
-                  foto: cardMember.foto,
-                  memberId: cardMember.memberId,
-                  masaBerlaku: cardMasaBerlaku,
-                }}
-                clubName={siteProfile.clubName}
-                shortName={siteProfile.shortName}
-                slogan={siteProfile.slogan}
-                logo={siteProfile.logo}
-                favicon={siteProfile.favicon}
-                cardTemplateFront={siteProfile.cardTemplateFront}
-                cardTemplateBack={siteProfile.cardTemplateBack}
-                profileUrl={cardMember.memberId ? `${baseUrl}/p/${cardMember.memberId}` : null}
-              />
+
+            {/* View Tabs */}
+            <div className="flex items-center justify-center my-4">
+              <div className="inline-flex p-1 bg-gray-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setCardTab("both")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    cardTab === "both"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Kedua Sisi (Depan & Belakang)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardTab("front")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    cardTab === "front"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Kartu Depan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardTab("back")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    cardTab === "back"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Kartu Belakang
+                </button>
+              </div>
             </div>
-            {/* Tombol Tutup di dalam modal */}
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => setCardModalState(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+
+            {/* Cards Display Grid */}
+            <div className="relative py-2">
+              <div
+                className={`grid gap-6 items-start justify-center ${
+                  cardTab === "both" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 max-w-sm mx-auto"
+                }`}
               >
-                Tutup
-              </button>
+                {/* Kartu Depan Card Container */}
+                <div
+                  className={`flex flex-col items-center gap-3 bg-gray-50 rounded-2xl p-4 border border-gray-100 transition-all ${
+                    cardTab === "back" ? "hidden" : "block"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full px-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700">
+                      <span className="w-2 h-2 rounded-full bg-red-600" />
+                      Kartu Depan
+                    </span>
+                    <span className="text-[11px] text-gray-400">Sisi Utama</span>
+                  </div>
+
+                  <div ref={frontCardRef} className="rounded-xl overflow-hidden shadow-md">
+                    <MemberCard
+                      compact
+                      member={{
+                        namaPanggilan: cardMember.namaPanggilan,
+                        namaLengkap: cardMember.namaLengkap,
+                        foto: cardMember.foto,
+                        memberId: cardMember.memberId,
+                        masaBerlaku: cardMasaBerlaku,
+                      }}
+                      clubName={effectiveSiteProfile.clubName}
+                      shortName={effectiveSiteProfile.shortName}
+                      slogan={effectiveSiteProfile.slogan}
+                      logo={effectiveSiteProfile.logo}
+                      favicon={effectiveSiteProfile.favicon}
+                      cardTemplateFront={effectiveSiteProfile.cardTemplateFront}
+                      cardTemplateBack={effectiveSiteProfile.cardTemplateBack}
+                      profileUrl={cardMember.memberId ? `${baseUrl}/p/${cardMember.memberId}` : null}
+                      showBack={false}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadFront}
+                    disabled={downloadingSide !== null}
+                    className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {downloadingSide === "front" ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Mengunduh Kartu Depan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Download Kartu Depan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Kartu Belakang Card Container */}
+                <div
+                  className={`flex flex-col items-center gap-3 bg-gray-50 rounded-2xl p-4 border border-gray-100 transition-all ${
+                    cardTab === "front" ? "hidden" : "block"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full px-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700">
+                      <span className="w-2 h-2 rounded-full bg-gray-800" />
+                      Kartu Belakang
+                    </span>
+                    <span className="text-[11px] text-gray-400">Sisi Belakang</span>
+                  </div>
+
+                  <div ref={backCardRef} className="rounded-xl overflow-hidden shadow-md">
+                    <MemberCard
+                      compact
+                      member={{
+                        namaPanggilan: cardMember.namaPanggilan,
+                        namaLengkap: cardMember.namaLengkap,
+                        foto: cardMember.foto,
+                        memberId: cardMember.memberId,
+                        masaBerlaku: cardMasaBerlaku,
+                      }}
+                      clubName={effectiveSiteProfile.clubName}
+                      shortName={effectiveSiteProfile.shortName}
+                      slogan={effectiveSiteProfile.slogan}
+                      logo={effectiveSiteProfile.logo}
+                      favicon={effectiveSiteProfile.favicon}
+                      cardTemplateFront={effectiveSiteProfile.cardTemplateFront}
+                      cardTemplateBack={effectiveSiteProfile.cardTemplateBack}
+                      profileUrl={cardMember.memberId ? `${baseUrl}/p/${cardMember.memberId}` : null}
+                      showBack={true}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadBack}
+                    disabled={downloadingSide !== null}
+                    className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-gray-900 text-white hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {downloadingSide === "back" ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Mengunduh Kartu Belakang...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Download Kartu Belakang</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
-            {cardModalState.download && <CardDownloader memberId={cardModalState.memberId} onDone={() => setCardModalState(null)} />}
+
+            {/* Modal Footer */}
+            <div className="pt-4 mt-4 border-t border-gray-100 space-y-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  {/* Button 1: 1 Gambar Lengkap (Depan & Belakang) — Paling aman dari blokir browser */}
+                  <button
+                    type="button"
+                    onClick={handleDownloadMerged}
+                    disabled={downloadingSide !== null}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-sm transition-all disabled:opacity-50"
+                  >
+                    {downloadingSide === "merged" ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Menggabungkan & Mengunduh...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Download 1 Gambar Lengkap (Depan & Belakang)</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Button 2: 2 File Terpisah */}
+                  <button
+                    type="button"
+                    onClick={handleDownloadBothSeparately}
+                    disabled={downloadingSide !== null}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
+                  >
+                    {downloadingSide === "both" ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Mengunduh 2 File...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        <span>Download 2 File Terpisah (PNG)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCardModalState(null)}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <p className="text-[11px] text-gray-400">
+                💡 <span className="font-semibold text-gray-500">Tips:</span> Tombol <strong>&quot;Download 1 Gambar Lengkap&quot;</strong> menggabungkan kartu depan dan belakang berdampingan dalam satu berkas gambar kualitas tinggi (300 DPI) tanpa risiko diblokir browser.
+              </p>
+            </div>
           </div>
         </div>
       )}
